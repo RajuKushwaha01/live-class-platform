@@ -1,0 +1,474 @@
+/* ===== CHAT MESSAGE SLIDE-IN ===== */
+@keyframes chatSlideIn {
+  from { opacity: 0; transform: translateX(-20px) scale(0.95); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+.chat-msg-animate { animation: chatSlideIn 0.35s ease forwards; }
+
+/* ===== QUESTION POPUP ===== */
+@keyframes popupBounceIn {
+  0% { opacity: 0; transform: scale(0.6) translateY(40px); }
+  60% { opacity: 1; transform: scale(1.05) translateY(-6px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.question-popup-animate { animation: popupBounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+/* ===== PROGRESS BAR ===== */
+.progress-bar-fill {
+  transition: width 0.6s ease;
+  background: linear-gradient(90deg, var(--neon-indigo), var(--neon-purple));
+}
+
+/* ===== LOADING SPINNER ===== */
+.loader-ring {
+  width: 44px; height: 44px;
+  border: 4px solid rgba(129,140,248,0.2);
+  border-top-color: var(--neon-indigo);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== MIC / CAM STATUS PULSE ===== */
+.mic-active {
+  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+  animation: micPulse 1.6s infinite;
+}
+@keyframes micPulse {
+  0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
+  70% { box-shadow: 0 0 0 12px rgba(52, 211, 153, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}
+.cam-off { filter: grayscale(1) brightness(0.5); }
+
+/* ===== FLOATING REACTION ===== */
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-160px) scale(1.8); }
+}
+
+/* ===== PARTICIPANT JOIN ANIMATION ===== */
+@keyframes tilePopIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+.video-tile { animation: tilePopIn 0.4s ease forwards; }
+
+/* ===== SMOOTH PAGE FADE ===== */
+.page-fade-in { animation: pageFade 0.6s ease forwards; }
+@keyframes pageFade {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== ORBITING ELEMENTS ===== */
+@keyframes orbitSpin {
+  from { transform: rotate(0deg) translateX(130px) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(130px) rotate(-360deg); }
+}
+.orbit-item { position: absolute; top: 50%; left: 50%; margin: -20px; animation: orbitSpin 14s linear infinite; }
+.orbit-item:nth-child(2) { animation-duration: 18s; animation-direction: reverse; }
+.orbit-item:nth-child(3) { animation-duration: 22s; }
+
+/* ===== AUDIO WAVEFORM ===== */
+.waveform { display: flex; align-items: flex-end; gap: 3px; height: 28px; }
+.waveform span { width: 3px; background: var(--neon-green); border-radius: 2px; animation: waveBounce 1s ease-in-out infinite; }
+.waveform span:nth-child(2) { animation-delay: 0.1s; }
+.waveform span:nth-child(3) { animation-delay: 0.2s; }
+.waveform span:nth-child(4) { animation-delay: 0.3s; }
+.waveform span:nth-child(5) { animation-delay: 0.4s; }
+@keyframes waveBounce { 0%, 100% { height: 6px; } 50% { height: 26px; } }
+
+/* ===== BROWSER MOCKUP ===== */
+.browser-mock { border-radius: 16px; overflow: hidden; }
+.browser-dots span { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+/* =========================================================
+   FUTURISTIC HERO ORBIT SYSTEM
+   ========================================================= */
+
+.hero-visual {
+  perspective: 1200px;
+}
+
+/* Main console depth */
+.console-border {
+  position: relative;
+  z-index: 10;
+  transform-style: preserve-3d;
+  animation: consoleFloat 6s ease-in-out infinite;
+}
+
+@keyframes consoleFloat {
+  0%, 100% {
+    transform: translateY(0) rotateX(0deg) rotateY(0deg);
+  }
+
+  50% {
+    transform: translateY(-8px) rotateX(1deg) rotateY(-1deg);
+  }
+}
+
+
+/* =========================================================
+   ORBIT RINGS
+   ========================================================= */
+
+.orbit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 360px;
+  height: 360px;
+  margin-left: -180px;
+  margin-top: -180px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.orbit-one {
+  animation: orbitRotateOne 14s linear infinite;
+}
+
+.orbit-two {
+  width: 300px;
+  height: 300px;
+  margin-left: -150px;
+  margin-top: -150px;
+  animation: orbitRotateTwo 18s linear infinite reverse;
+}
+
+.orbit-three {
+  width: 245px;
+  height: 245px;
+  margin-left: -122px;
+  margin-top: -122px;
+  animation: orbitRotateThree 11s linear infinite;
+}
+
+@keyframes orbitRotateOne {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes orbitRotateTwo {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes orbitRotateThree {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* =========================================================
+   ORBIT NODES
+   ========================================================= */
+
+.orbit-node {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: rgba(15, 23, 42, 0.9);
+
+  border: 1px solid rgba(255,255,255,0.15);
+
+  backdrop-filter: blur(12px);
+
+  box-shadow:
+    0 0 20px rgba(129,140,248,0.25),
+    inset 0 0 15px rgba(255,255,255,0.05);
+
+  font-size: 17px;
+
+  animation: nodePulse 3s ease-in-out infinite;
+}
+
+.node-indigo {
+  box-shadow:
+    0 0 25px rgba(129,140,248,0.45);
+}
+
+.node-purple {
+  box-shadow:
+    0 0 25px rgba(168,85,247,0.45);
+}
+
+.node-pink {
+  box-shadow:
+    0 0 25px rgba(244,114,182,0.45);
+}
+
+@keyframes nodePulse {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+  }
+
+  50% {
+    transform: translateX(-50%) scale(1.15);
+  }
+}
+
+
+/* =========================================================
+   FLOATING CONNECTION PARTICLES
+   ========================================================= */
+
+.connection-dot {
+  position: absolute;
+
+  width: 5px;
+  height: 5px;
+
+  border-radius: 50%;
+
+  background: #818cf8;
+
+  box-shadow:
+    0 0 10px #818cf8,
+    0 0 25px rgba(129,140,248,0.6);
+
+  animation: connectionFloat 5s ease-in-out infinite;
+}
+
+.dot-one {
+  left: 18%;
+  top: 28%;
+  animation-delay: 0s;
+}
+
+.dot-two {
+  right: 17%;
+  top: 35%;
+  animation-delay: 1.2s;
+}
+
+.dot-three {
+  left: 25%;
+  bottom: 25%;
+  animation-delay: 2.3s;
+}
+
+.dot-four {
+  right: 25%;
+  bottom: 22%;
+  animation-delay: 3.1s;
+}
+
+@keyframes connectionFloat {
+
+  0%, 100% {
+    opacity: 0.25;
+    transform: translate3d(0, 0, 0) scale(0.8);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate3d(0, -18px, 0) scale(1.3);
+  }
+
+}
+
+
+/* =========================================================
+   CONSOLE CORNER ACCENTS
+   ========================================================= */
+
+.corner-accent {
+  position: absolute;
+
+  width: 18px;
+  height: 18px;
+
+  opacity: 0.7;
+
+  z-index: 5;
+}
+
+.corner-tl {
+  top: 8px;
+  left: 8px;
+
+  border-top: 1px solid #818cf8;
+  border-left: 1px solid #818cf8;
+}
+
+.corner-tr {
+  top: 8px;
+  right: 8px;
+
+  border-top: 1px solid #f472b6;
+  border-right: 1px solid #f472b6;
+}
+
+.corner-bl {
+  bottom: 8px;
+  left: 8px;
+
+  border-bottom: 1px solid #818cf8;
+  border-left: 1px solid #818cf8;
+}
+
+.corner-br {
+  bottom: 8px;
+  right: 8px;
+
+  border-bottom: 1px solid #f472b6;
+  border-right: 1px solid #f472b6;
+}
+
+
+/* =========================================================
+   SCORE PANEL
+   ========================================================= */
+
+.score-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.score-panel::before {
+  content: "";
+
+  position: absolute;
+
+  width: 80px;
+  height: 80px;
+
+  border-radius: 50%;
+
+  background: rgba(129,140,248,0.12);
+
+  filter: blur(20px);
+
+  animation: scoreGlow 4s ease-in-out infinite;
+}
+
+@keyframes scoreGlow {
+
+  0%, 100% {
+    transform: scale(0.8);
+    opacity: 0.4;
+  }
+
+  50% {
+    transform: scale(1.25);
+    opacity: 0.9;
+  }
+
+}
+
+
+/* =========================================================
+   QUESTION CARD
+   ========================================================= */
+
+.question-popup-animate {
+  animation:
+    questionFloat 4s ease-in-out infinite,
+    questionGlow 5s ease-in-out infinite;
+}
+
+@keyframes questionFloat {
+
+  0%, 100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+
+}
+
+@keyframes questionGlow {
+
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(129,140,248,0);
+  }
+
+  50% {
+    box-shadow:
+      0 0 25px rgba(129,140,248,0.08);
+  }
+
+}
+
+
+/* =========================================================
+   AVATAR FLOAT
+   ========================================================= */
+
+.avatar-float {
+  animation: avatarFloat 3.5s ease-in-out infinite;
+}
+
+.avatar-float:nth-child(2) {
+  animation-delay: 0.4s;
+}
+
+.avatar-float:nth-child(3) {
+  animation-delay: 0.8s;
+}
+
+.avatar-float:nth-child(4) {
+  animation-delay: 1.2s;
+}
+
+@keyframes avatarFloat {
+
+  0%, 100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+
+}
+
+
+/* =========================================================
+   REDUCE MOTION FOR ACCESSIBILITY
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .console-border,
+  .orbit,
+  .orbit-node,
+  .connection-dot,
+  .question-popup-animate,
+  .avatar-float,
+  .score-panel::before {
+    animation: none !important;
+  }
+
+}

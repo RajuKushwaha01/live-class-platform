@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title><%= meeting.title %> — Live Class</title>
+    <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body { margin:0; font-family: 'Segoe UI', sans-serif; }
+    .video-tile { transition: all 0.3s ease; }
+    .video-tile:hover { transform: scale(1.02); }
+    #chatBox::-webkit-scrollbar { width: 6px; }
+    #chatBox::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 10px; }
+  </style>
+</head>
+<body class="bg-slate-950 h-screen overflow-hidden flex flex-col">
+
+  <!-- TOP BAR -->
+  <div class="bg-slate-900 border-b border-white/10 px-6 py-3 flex items-center justify-between">
+    <div>
+      <h1 class="text-white font-bold"><%= meeting.title %></h1>
+      <p class="text-gray-400 text-xs">Chapter: <%= meeting.chapterName %> • Code: <%= meeting.meetingCode %></p>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="recordingBadge" class="hidden text-red-400 text-xs flex items-center gap-1">
+        <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> Recording
+      </span>
+      <% if (isHost) { %>
+        <form action="/meeting/<%= meeting.meetingCode %>/end" method="POST">
+          <button class="bg-red-600 hover:bg-red-500 text-white text-sm px-4 py-2 rounded-lg">End Meeting</button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="meeting-layout flex flex-1 overflow-hidden">
+    <!-- MAIN VIDEO AREA -->
+    <div class="flex-1 p-2 md:p-4 overflow-y-auto">
+      <div id="videoGrid" class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
+        <div class="video-tile bg-slate-800 rounded-xl overflow-hidden relative aspect-video">
+          <video id="localVideo" autoplay muted playsinline class="w-full h-full object-cover"></video>
+          <span class="absolute bottom-1.5 left-1.5 md:bottom-2 md:left-2 bg-black/50 text-white text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded">
+            <%= user.name %> (You) <%= isHost ? "👑" : "" %>
+          </span>
+        </div>
+        <!-- Remote videos injected here dynamically -->
+      </div>
+
+      <!-- WHITEBOARD (toggled) -->
+      <div id="whiteboardPanel" class="hidden mt-4 bg-white rounded-xl p-2">
+        <canvas id="whiteboard" width="800" height="400" class="border rounded-lg w-full cursor-crosshair"></canvas>
+        <button id="clearBoard" class="mt-2 bg-red-500 text-white px-3 py-1 rounded text-sm">Clear Board</button>
+      </div>
+    </div>
+
+    <!-- SIDE PANEL → becomes bottom sheet on mobile -->
+    <button id="panelToggleBtn" class="lg:hidden fixed bottom-24 right-4 z-30 bg-indigo-600 text-white p-3.5 rounded-full shadow-xl">
+      <i data-lucide="message-circle" class="w-5 h-5"></i>
+    </button>
+
+    <div id="meetingSidePanel" class="meeting-side-panel w-full lg:w-80 bg-slate-900 border-l border-white/10 flex flex-col">
+      <div class="panel-drag-handle"></div>
+      <div class="flex border-b border-white/10">
+        <button class="tab-btn flex-1 text-white text-sm py-3" data-tab="chat">💬 Chat</button>
+        <button class="tab-btn flex-1 text-gray-400 text-sm py-3" data-tab="participants">👥 People</button>
+        <button class="tab-btn flex-1 text-gray-400 text-sm py-3" data-tab="questions">📋 Q&A</button>
+        <button id="panelCloseBtn" class="lg:hidden text-gray-400 px-3"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+
+      <!-- CHAT TAB -->
+      <div id="tab-chat" class="tab-content flex-1 flex flex-col p-3 overflow-hidden">
+        <div id="chatBox" class="flex-1 overflow-y-auto space-y-2 mb-2"></div>
+        <form id="chatForm" class="flex gap-2">
+          <input id="chatInput" type="text" placeholder="Type a message..."
+            class="flex-1 bg-white/10 text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none" />
+          <button class="bg-indigo-600 text-white px-4 rounded-lg">➤</button>
+        </form>
+      </div>
+
+      <!-- PARTICIPANTS TAB -->
+      <div id="tab-participants" class="tab-content hidden flex-1 p-3 overflow-y-auto">
+        <div id="participantsList" class="space-y-2 text-white text-sm"></div>
+      </div>
+
+      <!-- QUESTIONS TAB -->
+      <div id="tab-questions" class="tab-content hidden flex-1 p-3 overflow-y-auto">
+        <% if (isHost) { %>
+          <form id="questionForm" class="space-y-2 mb-4">
+            <input id="qText" type="text" placeholder="Question text" class="w-full bg-white/10 text-white text-sm rounded-lg px-3 py-2" />
+            <input id="qOptions" type="text" placeholder="Options (comma separated)" class="w-full bg-white/10 text-white text-sm rounded-lg px-3 py-2" />
+            <button class="w-full bg-purple-600 text-white py-2 rounded-lg text-sm">Send Question</button>
+          </form>
+        <% } %>
+        <div id="questionsList" class="space-y-3 text-white text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROL BAR -->
+  <div class="meeting-controls bg-slate-900 border-t border-white/10 py-3 flex items-center justify-center gap-3">
+    <button id="micBtn" class="control-btn bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full" title="Mic"><i data-lucide="mic"></i></button>
+    <button id="camBtn" class="control-btn bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full" title="Camera"><i data-lucide="video"></i></button>
+    <button id="screenBtn" class="control-btn bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full" title="Share Screen"><i data-lucide="monitor"></i></button>
+    <button id="handBtn" class="control-btn bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full" title="Raise Hand"><i data-lucide="hand"></i></button>
+    <button id="reactionBtn" class="control-btn bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full" title="Reaction"><i data-lucide="smile"></i></button>
+    <button id="whiteboardBtn" class="control-btn bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full" title="Whiteboard"><i data-lucide="pencil"></i></button>
+    <% if (isHost) { %>
+      <button id="recordBtn" class="control-btn bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full" title="Record"><i data-lucide="circle-dot"></i></button>
+    <% } %>
+    <a href="/meeting/<%= meeting.meetingCode %>/join" class="control-btn bg-red-600 hover:bg-red-500 text-white p-3 rounded-full" title="Leave"><i data-lucide="phone-off"></i></a>
+  </div>
+
+  <script>
+    window.MEETING_DATA = {
+      meetingCode: "<%= meeting.meetingCode %>",
+      userId: "<%= user._id %>",
+      userName: "<%= user.name %>",
+      role: "<%= user.role %>",
+      isHost: <%= isHost %>
+    };
+  </script>
+  <script>
+    (function() {
+      const panel = document.getElementById("meetingSidePanel");
+      const toggleBtn = document.getElementById("panelToggleBtn");
+      const closeBtn = document.getElementById("panelCloseBtn");
+
+      toggleBtn?.addEventListener("click", () => panel.classList.add("panel-open"));
+      closeBtn?.addEventListener("click", () => panel.classList.remove("panel-open"));
+
+      // Swipe-down-to-close on the drag handle (mobile touch gesture)
+      let startY = 0;
+      const handle = panel.querySelector(".panel-drag-handle");
+      handle?.addEventListener("touchstart", (e) => { startY = e.touches[0].clientY; });
+      handle?.addEventListener("touchmove", (e) => {
+        const diff = e.touches[0].clientY - startY;
+        if (diff > 80) panel.classList.remove("panel-open");
+      });
+    })();
+  </script>
+  <script src="/js/webrtc-client.js"></script>
+  <script src="/js/meeting-room.js"></script>
+</body>
+</html>

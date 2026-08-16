@@ -1,0 +1,218 @@
+/* ============================================
+   RESPONSIVE FOUNDATION
+   ============================================ */
+
+/* Prevent horizontal scroll on any page */
+html, body { overflow-x: hidden; max-width: 100%; }
+
+/* ============================================
+   SIDEBAR → BOTTOM NAV on mobile
+   ============================================ */
+@media (max-width: 1024px) {
+  .app-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    width: 260px !important;
+  }
+  .app-sidebar.sidebar-open { transform: translateX(0); }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 19;
+  }
+  .sidebar-overlay.active { display: block; }
+
+  .main-content { margin-left: 0 !important; padding-bottom: 80px !important; }
+
+  /* Bottom tab bar replaces sidebar navigation on small screens */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(11,13,28,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-glass);
+    z-index: 30;
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+  }
+}
+@media (min-width: 1025px) {
+  .mobile-bottom-nav { display: none; }
+  .sidebar-hamburger { display: none; }
+}
+.mobile-bottom-nav {
+  display: none;
+  justify-content: space-around;
+  align-items: center;
+}
+.mobile-bottom-nav a {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  color: var(--text-dim); font-size: 10px; padding: 6px 8px; border-radius: 10px;
+  flex: 1; text-align: center;
+}
+.mobile-bottom-nav a.active { color: var(--neon-indigo); background: rgba(129,140,248,0.1); }
+.mobile-bottom-nav a i { width: 20px; height: 20px; }
+
+/* ============================================
+   NAVBAR (landing page) — hamburger on mobile
+   ============================================ */
+@media (max-width: 768px) {
+  .navbar-links { display: none !important; }
+  .navbar-hamburger { display: flex !important; }
+  .navbar-mobile-menu {
+    position: fixed; top: 64px; left: 0; right: 0;
+    background: rgba(11,13,28,0.98);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border-glass);
+    padding: 20px;
+    transform: translateY(-150%);
+    transition: transform 0.35s ease;
+    z-index: 49;
+  }
+  .navbar-mobile-menu.open { transform: translateY(0); }
+}
+@media (min-width: 769px) {
+  .navbar-hamburger { display: none !important; }
+  .navbar-mobile-menu { display: none !important; }
+}
+
+/* ============================================
+   STAT CARDS grid — fewer columns on mobile
+   ============================================ */
+@media (max-width: 640px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+  .stat-card { padding: 14px !important; }
+  .stat-card p.text-3xl { font-size: 1.5rem !important; }
+}
+
+/* ============================================
+   HERO SECTION — stack + shrink on mobile
+   ============================================ */
+@media (max-width: 768px) {
+  .hero-title { font-size: 2.25rem !important; line-height: 1.15 !important; }
+  .hero-grid { grid-template-columns: 1fr !important; gap: 32px !important; text-align: center; }
+  .hero-buttons { justify-content: center !important; }
+  .hero-visual { height: 340px !important; }
+  .console-border.w-full.max-w-md { max-width: 100% !important; }
+}
+
+/* ============================================
+   FEATURE / COURSE CARD GRIDS
+   ============================================ */
+@media (max-width: 768px) {
+  .features-grid, .courses-grid { grid-template-columns: 1fr !important; }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+  .features-grid, .courses-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* ============================================
+   MEETING ROOM — full mobile rebuild
+   ============================================ */
+@media (max-width: 1024px) {
+  .meeting-layout { flex-direction: column !important; }
+
+  #videoGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    padding-bottom: 4px;
+  }
+  .video-tile { aspect-ratio: 4/3; }
+
+  /* Side panel becomes a slide-up bottom sheet */
+  .meeting-side-panel {
+    position: fixed !important;
+    bottom: 0; left: 0; right: 0;
+    width: 100% !important;
+    height: 60vh !important;
+    border-radius: 20px 20px 0 0;
+    transform: translateY(100%);
+    transition: transform 0.35s ease;
+    z-index: 40;
+    border-left: none !important;
+    border-top: 1px solid var(--border-glass);
+  }
+  .meeting-side-panel.panel-open { transform: translateY(0); }
+
+  .panel-drag-handle {
+    display: block; width: 40px; height: 4px; background: rgba(255,255,255,0.2);
+    border-radius: 10px; margin: 8px auto;
+  }
+
+  .meeting-topbar { padding: 10px 14px !important; }
+  .meeting-topbar h1 { font-size: 0.9rem !important; }
+  .meeting-topbar p { font-size: 0.65rem !important; }
+
+  /* Control bar — smaller, scrollable if too many buttons */
+  .meeting-controls {
+    padding: 10px 8px calc(10px + env(safe-area-inset-bottom)) !important;
+    gap: 8px !important;
+    overflow-x: auto;
+    justify-content: flex-start !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .meeting-controls::-webkit-scrollbar { display: none; }
+  .control-btn { padding: 10px !important; flex-shrink: 0; }
+  .control-btn i { width: 18px !important; height: 18px !important; }
+}
+@media (max-width: 480px) {
+  #videoGrid { grid-template-columns: 1fr !important; }
+}
+@media (min-width: 1025px) {
+  .panel-drag-handle { display: none; }
+}
+
+/* ============================================
+   WHITEBOARD — responsive canvas
+   ============================================ */
+@media (max-width: 768px) {
+  #whiteboard { width: 100% !important; height: auto !important; }
+}
+
+/* ============================================
+   FORMS (login, register, create meeting/assignment)
+   ============================================ */
+@media (max-width: 640px) {
+  .glass-card.card-3d, .glass-card { border-radius: 16px !important; }
+  .form-page-padding { padding: 16px !important; }
+  .max-w-2xl, .max-w-3xl, .max-w-xl, .max-w-md { max-width: 100% !important; }
+  h2.text-2xl, h2.text-3xl { font-size: 1.35rem !important; }
+}
+
+/* ============================================
+   TABLES → card list on mobile (admin/users, results)
+   ============================================ */
+@media (max-width: 768px) {
+  table.responsive-table thead { display: none; }
+  table.responsive-table, table.responsive-table tbody, table.responsive-table tr, table.responsive-table td {
+    display: block; width: 100%;
+  }
+  table.responsive-table tr {
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    padding: 10px;
+  }
+  table.responsive-table td {
+    padding: 6px 4px !important;
+    border-top: none !important;
+    display: flex;
+    justify-content: space-between;
+    text-align: right;
+  }
+  table.responsive-table td::before {
+    content: attr(data-label);
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    text-align: left;
+  }
+}
+
+/* ============================================
+   TOUCH TARGETS — minimum 44px tap area everywhere
+   ============================================ */
+@media (max-width: 768px) {
+  button, a.btn-glow, .sidebar-link, input[type="submit"] { min-height: 44px; }
+  input, select, textarea { font-size: 16px !important; } /* prevents iOS auto-zoom on focus */
+}

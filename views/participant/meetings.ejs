@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>My Meetings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/responsive.css" />
+  <link rel="stylesheet" href="/css/theme.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="relative min-h-screen">
+
+  <!-- TOP NOTIFICATION BELL -->
+  <div class="fixed top-4 right-6 z-30">
+  <!-- ✅ FIXED -->
+<%- include('../partials/notification-bell', { userId: user._id }) %>
+<%- include('../partials/live-meeting-alert') %>
+</div>
+
+  <%- include('../partials/sidebar', { role: 'participant', active: 'meetings' }) %>
+
+  <main class="ml-64 p-8 relative z-10">
+    <h1 class="text-white text-3xl font-bold mb-6">📹 My Meetings</h1>
+
+    <div class="grid gap-4">
+      <% meetings.forEach(m => { %>
+        <div class="glass-card card-3d p-5 flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <h3 class="text-white font-semibold"><%= m.title %></h3>
+              <span class="text-xs px-2 py-0.5 rounded-full
+                <%= m.status === 'live' ? 'bg-red-500/20 text-red-400' : m.status === 'ended' ? 'bg-gray-500/20 text-gray-400' : 'bg-yellow-500/20 text-yellow-400' %>">
+                <%= m.status %>
+              </span>
+            </div>
+            <p class="text-gray-400 text-sm">Host: <%= m.host.name %> • <%= m.chapterName || '' %></p>
+          </div>
+          <a href="/meeting/<%= m.meetingCode %>" class="btn-glow text-white text-xs px-4 py-2 rounded-lg">
+            <%= m.status === 'live' ? 'Join Now →' : 'View →' %>
+          </a>
+        </div>
+      <% }) %>
+      <% if (meetings.length === 0) { %>
+        <p class="text-gray-500 text-center py-10">No meetings yet.</p>
+      <% } %>
+    </div>
+  </main>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>Grade — <%= assignment.title %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="relative min-h-screen">
+  <%- include('../partials/sidebar', { role: 'host', active: 'assignments' }) %>
+
+  <main class="ml-64 p-8 relative z-10">
+    <h1 class="text-white text-2xl font-bold mb-1"><%= assignment.title %> — Grading</h1>
+    <p class="text-gray-400 mb-6"><%= assignment.submissions.length %> submissions</p>
+
+    <% assignment.submissions.forEach(sub => { %>
+      <div class="glass-card p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-white font-semibold"><%= sub.participantName %></h3>
+          <span class="text-indigo-300 text-sm">Total: <%= sub.totalScore %> / <%= sub.maxScore %></span>
+        </div>
+
+        <form action="/assignment/grade/<%= assignment._id %>/<%= sub._id %>" method="POST" onsubmit="return buildPoints(this)">
+          <div class="space-y-4">
+            <% sub.answers.forEach((ans) => {
+              const q = assignment.questions[ans.questionIndex];
+            %>
+              <div class="bg-black/30 rounded-lg p-4">
+                <p class="text-white text-sm mb-1">Q<%= ans.questionIndex + 1 %>. <%= q.questionText %> <span class="text-gray-500 text-xs">(max <%= q.points %> pts)</span></p>
+                <p class="text-gray-400 text-sm mb-2 font-mono bg-white/5 rounded p-2 whitespace-pre-wrap"><%= ans.answerText %></p>
+                <label class="text-gray-400 text-xs">Points awarded:</label>
+                <input type="number" min="0" max="<%= q.points %>" value="<%= ans.pointsAwarded %>"
+                  class="points-input w-24 bg-white/10 text-white text-sm rounded px-2 py-1 ml-2"
+                  data-question-index="<%= ans.questionIndex %>" />
+              </div>
+            <% }) %>
+          </div>
+          <input type="hidden" name="pointsData" class="pointsData" />
+          <button type="submit" class="btn-glow mt-4 text-white text-sm px-5 py-2 rounded-lg">Save Grade</button>
+        </form>
+      </div>
+    <% }) %>
+  </main>
+
+  <script>
+    lucide.createIcons();
+    function buildPoints(form) {
+      const points = [...form.querySelectorAll(".points-input")].map((inp) => ({
+        questionIndex: Number(inp.dataset.questionIndex),
+        pointsAwarded: Number(inp.value),
+      }));
+      form.querySelector(".pointsData").value = JSON.stringify(points);
+      return true;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Assignment Results</title>
+  <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 min-h-screen p-6">
+
+  <div class="max-w-5xl mx-auto">
+    <h2 class="text-white text-3xl font-bold mb-1"><%= assignment.title %> — Results</h2>
+    <p class="text-gray-400 mb-6"><%= assignment.submissions.length %> submissions • Average Score: <%= avgScore %></p>
+
+    <div id="chartCard" class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 mb-8">
+      <canvas id="scoreChart" height="90"></canvas>
+    </div>
+
+    <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden">
+      <table class="responsive-table w-full text-left text-sm">
+        <thead class="bg-white/10 text-gray-300">
+          <tr>
+            <th class="p-3">Participant</th>
+            <th class="p-3">Score</th>
+            <th class="p-3">Submitted At</th>
+          </tr>
+        </thead>
+        <tbody class="text-white">
+          <% assignment.submissions.forEach(s => { %>
+            <tr class="border-t border-white/10">
+              <td class="p-3" data-label="Participant"><%= s.participantName %></td>
+              <td class="p-3" data-label="Score"><%= s.totalScore %> / <%= s.maxScore %></td>
+              <td class="p-3 text-gray-400" data-label="Submitted At"><%= new Date(s.submittedAt).toLocaleString() %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    gsap.from("#chartCard", { opacity: 0, y: 30, duration: 0.7 });
+
+    const labels = <%- JSON.stringify(assignment.submissions.map(s => s.participantName)) %>;
+    const scores = <%- JSON.stringify(assignment.submissions.map(s => s.totalScore)) %>;
+
+    new Chart(document.getElementById("scoreChart"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "Score",
+          data: scores,
+          backgroundColor: "rgba(129, 140, 248, 0.7)",
+          borderRadius: 8,
+        }],
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { ticks: { color: "#cbd5e1" }, grid: { color: "rgba(255,255,255,0.1)" } },
+          x: { ticks: { color: "#cbd5e1" }, grid: { display: false } },
+        },
+      },
+    });
+  </script>
+</body>
+</html>

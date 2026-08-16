@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/animations.css" />
+  <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+</head>
+<body class="relative min-h-screen">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <%- include('../partials/sidebar', { role: 'admin', active: 'dashboard' }) %>
+
+  <main class="ml-64 p-8 relative z-10 page-fade-in">
+    <h1 class="text-white text-3xl font-bold mb-1">Admin Control Panel 🛡️</h1>
+    <p class="text-gray-400 mb-8">Platform-wide overview and management</p>
+
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-5 mb-10">
+      <div class="stat-card glass-card card-3d p-5">
+        <i data-lucide="users" class="text-indigo-300 mb-2"></i>
+        <p class="text-3xl font-bold text-white count-up" data-target="<%= stats.totalUsers %>">0</p>
+        <p class="text-gray-400 text-sm">Total Users</p>
+      </div>
+      <div class="stat-card glass-card card-3d p-5">
+        <i data-lucide="graduation-cap" class="text-purple-300 mb-2"></i>
+        <p class="text-3xl font-bold text-white count-up" data-target="<%= stats.totalHosts %>">0</p>
+        <p class="text-gray-400 text-sm">Hosts</p>
+      </div>
+      <div class="stat-card glass-card card-3d p-5">
+        <i data-lucide="user" class="text-pink-300 mb-2"></i>
+        <p class="text-3xl font-bold text-white count-up" data-target="<%= stats.totalParticipants %>">0</p>
+        <p class="text-gray-400 text-sm">Participants</p>
+      </div>
+      <div class="stat-card glass-card card-3d p-5">
+        <i data-lucide="radio" class="text-red-400 mb-2"></i>
+        <p class="text-3xl font-bold text-white count-up" data-target="<%= stats.activeMeetings %>">0</p>
+        <p class="text-gray-400 text-sm">Live Now</p>
+      </div>
+      <div class="stat-card glass-card card-3d p-5">
+        <i data-lucide="video" class="text-green-300 mb-2"></i>
+        <p class="text-3xl font-bold text-white count-up" data-target="<%= stats.totalMeetings %>">0</p>
+        <p class="text-gray-400 text-sm">Total Meetings</p>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+      <a href="/admin/users" class="glass-card card-3d p-6 hover:bg-white/10 transition">
+        <i data-lucide="user-cog" class="text-indigo-300 mb-3 w-6 h-6"></i>
+        <h3 class="text-white font-semibold text-lg mb-1">Manage Users</h3>
+        <p class="text-gray-400 text-sm">Block, unblock, or delete accounts.</p>
+      </a>
+      <a href="/admin/live-monitor" class="glass-card card-3d p-6 hover:bg-white/10 transition">
+        <i data-lucide="monitor-play" class="text-red-300 mb-3 w-6 h-6"></i>
+        <h3 class="text-white font-semibold text-lg mb-1">Live Meeting Monitor</h3>
+        <p class="text-gray-400 text-sm">Watch all currently active classes.</p>
+      </a>
+    </div>
+  </main>
+
+  <script src="/js/page-animations.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

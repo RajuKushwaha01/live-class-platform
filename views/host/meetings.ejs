@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>My Meetings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/animations.css" />
+  <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="relative min-h-screen">
+  <!-- TOP NOTIFICATION BELL -->
+  <div class="fixed top-4 right-6 z-30">
+ <!-- ✅ FIXED -->
+<%- include('../partials/notification-bell', { userId: user._id }) %>
+<%- include('../partials/live-meeting-alert') %>
+</div>
+
+  <div class="blob blob-1"></div>
+  <%- include('../partials/sidebar', { role: 'host', active: 'meetings' }) %>
+
+  <main class="main-content ml-64 p-4 md:p-8 relative z-10 page-fade-in">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-white text-3xl font-bold">📹 My Meetings</h1>
+      <a href="/meeting/create" class="btn-glow text-white text-sm px-5 py-2.5 rounded-lg">+ New Meeting</a>
+    </div>
+
+    <div class="grid gap-4">
+      <% meetings.forEach(m => { %>
+        <div class="glass-card card-3d p-5 flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <h3 class="text-white font-semibold"><%= m.title %></h3>
+              <span class="text-xs px-2 py-0.5 rounded-full
+                <%= m.status === 'live' ? 'bg-red-500/20 text-red-400' : m.status === 'ended' ? 'bg-gray-500/20 text-gray-400' : 'bg-yellow-500/20 text-yellow-400' %>">
+                <%= m.status %>
+              </span>
+            </div>
+            <p class="text-gray-400 text-sm"><%= m.chapterName || '' %> • Code: <%= m.meetingCode %> • <%= m.participants.length %> joined</p>
+          </div>
+          <div class="flex gap-2">
+            <a href="/invite/<%= m.meetingCode %>" class="bg-white/10 hover:bg-white/20 text-white text-xs px-4 py-2 rounded-lg transition">Invite</a>
+            <a href="/meeting/room/<%= m.meetingCode %>" class="btn-glow text-white text-xs px-4 py-2 rounded-lg">Enter →</a>
+          </div>
+        </div>
+      <% }) %>
+      <% if (meetings.length === 0) { %>
+        <p class="text-gray-500 text-center py-10">No meetings yet.</p>
+      <% } %>
+    </div>
+  </main>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

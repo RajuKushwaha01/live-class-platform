@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>My Students</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="relative min-h-screen">
+  <!-- TOP NOTIFICATION BELL -->
+  <div class="fixed top-4 right-6 z-30">
+<!-- ✅ FIXED -->
+<%- include('../partials/notification-bell', { userId: user._id }) %>
+<%- include('../partials/live-meeting-alert') %>
+</div>
+
+  <%- include('../partials/sidebar', { role: 'host', active: 'students' }) %>
+
+  <main class="ml-64 p-8 relative z-10">
+    <h1 class="text-white text-3xl font-bold mb-6">🎓 My Students</h1>
+
+    <div class="glass-card overflow-hidden">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-white/10 text-gray-300">
+          <tr><th class="p-4">Name</th><th class="p-4">Email</th><th class="p-4">Meetings Joined</th></tr>
+        </thead>
+        <tbody class="text-white">
+          <% students.forEach(s => { %>
+            <tr class="border-t border-white/10">
+              <td class="p-4"><%= s.name %></td>
+              <td class="p-4 text-gray-400"><%= s.email %></td>
+              <td class="p-4"><%= s.meetingsJoined %></td>
+            </tr>
+          <% }) %>
+          <% if (students.length === 0) { %>
+            <tr><td colspan="3" class="p-6 text-center text-gray-500">No students yet.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

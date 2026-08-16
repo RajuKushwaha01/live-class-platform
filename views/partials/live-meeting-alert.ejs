@@ -1,0 +1,33 @@
+<script>
+  (function() {
+    if (!window.globalSocket) return; // notification-bell.ejs must load first and create this
+
+    window.globalSocket.on("meeting-live", (data) => {
+      const existing = document.getElementById("liveMeetingAlert");
+      if (existing) existing.remove();
+
+      const alertBox = document.createElement("div");
+      alertBox.id = "liveMeetingAlert";
+      alertBox.className = "fixed top-20 left-1/2 -translate-x-1/2 z-[60] w-[92%] max-w-md glass-card border border-red-500/40 p-4 question-popup-animate shadow-2xl";
+      alertBox.innerHTML = `
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500 mic-active"></span>
+          </div>
+          <div class="flex-1">
+            <p class="text-white text-sm font-semibold">🔴 ${data.meetingTitle} is live!</p>
+            <p class="text-gray-400 text-xs mt-0.5">${data.hostName} started ${data.chapterName ? `"${data.chapterName}"` : "the class"} — join now.</p>
+            <div class="flex gap-2 mt-3">
+              <a href="${data.link}" class="btn-glow text-white text-xs px-4 py-2 rounded-lg flex-1 text-center">Join Now →</a>
+              <button onclick="document.getElementById('liveMeetingAlert').remove()" class="text-gray-400 text-xs px-3 py-2 hover:text-white">Dismiss</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(alertBox);
+
+      // Auto-dismiss after 25 seconds if ignored
+      setTimeout(() => document.getElementById("liveMeetingAlert")?.remove(), 25000);
+    });
+  })();
+</script>

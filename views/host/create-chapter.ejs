@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>Create Chapter</title>
+    <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+</head>
+<!-- NEW -->
+<body class="relative min-h-screen flex items-center justify-center px-4 sm:px-6 py-8 form-page-padding">
+  <div id="card" class="max-w-3xl mx-auto bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-2xl">
+    <h2 class="text-white text-2xl font-bold mb-1">📖 Create Chapter Material</h2>
+    <p class="text-gray-400 mb-6">For meeting: <span class="text-indigo-300"><%= meeting.meetingCode %></span></p>
+
+    <% if (error) { %>
+      <div class="bg-red-500/20 border border-red-500 text-red-300 px-4 py-2 rounded-lg mb-4"><%= error %></div>
+    <% } %>
+
+    <form action="/chapter/create/<%= meeting.meetingCode %>" method="POST" enctype="multipart/form-data" class="space-y-4">
+      <input type="text" name="title" placeholder="Chapter Title (e.g. Chapter 3 — Java OOP)" required
+        class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3" />
+
+      <textarea name="explanation" placeholder="Explanation" rows="4"
+        class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3"></textarea>
+
+      <textarea name="notes" placeholder="Additional Notes" rows="2"
+        class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3"></textarea>
+
+      <input type="text" name="videoUrl" placeholder="Video URL (YouTube link, optional)"
+        class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3" />
+
+      <div>
+        <label class="text-gray-300 text-sm">Upload PDF</label>
+        <input type="file" name="pdfFile" accept="application/pdf"
+          class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-2 mt-1" />
+      </div>
+
+      <div>
+        <label class="text-gray-300 text-sm">Upload Images (up to 10)</label>
+        <input type="file" name="images" accept="image/*" multiple
+          class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-2 mt-1" />
+      </div>
+
+      <!-- Code Examples Builder -->
+      <div>
+        <label class="text-gray-300 text-sm">Code Examples</label>
+        <div id="codeExamplesContainer" class="space-y-2 mt-2"></div>
+        <button type="button" onclick="addCodeExample()" class="text-indigo-400 text-sm mt-2">+ Add Code Example</button>
+      </div>
+      <input type="hidden" name="codeExamples" id="codeExamplesInput" />
+
+      <!-- Links Builder -->
+      <div>
+        <label class="text-gray-300 text-sm">Reference Links</label>
+        <div id="linksContainer" class="space-y-2 mt-2"></div>
+        <button type="button" onclick="addLink()" class="text-indigo-400 text-sm mt-2">+ Add Link</button>
+      </div>
+      <input type="hidden" name="links" id="linksInput" />
+
+      <button type="submit" onclick="return prepareData()"
+        class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 rounded-xl font-semibold hover:scale-105 transition">
+        Publish Chapter
+      </button>
+    </form>
+  </div>
+
+  <script>
+    gsap.from("#card", { opacity: 0, y: 30, duration: 0.7 });
+
+    let codeExampleCount = 0;
+    function addCodeExample() {
+      const container = document.getElementById("codeExamplesContainer");
+      const div = document.createElement("div");
+      div.className = "code-example-row bg-black/30 rounded-lg p-3 space-y-2";
+      div.innerHTML = `
+        <input type="text" placeholder="Language (e.g. Java)" class="ce-lang w-full bg-white/10 text-white text-sm rounded px-2 py-1" />
+        <textarea placeholder="Code" rows="3" class="ce-code w-full bg-white/10 text-white text-sm rounded px-2 py-1 font-mono"></textarea>
+        <input type="text" placeholder="Description" class="ce-desc w-full bg-white/10 text-white text-sm rounded px-2 py-1" />
+        <button type="button" onclick="this.parentElement.remove()" class="text-red-400 text-xs">Remove</button>
+      `;
+      container.appendChild(div);
+    }
+
+    function addLink() {
+      const container = document.getElementById("linksContainer");
+      const div = document.createElement("div");
+      div.className = "link-row flex gap-2";
+      div.innerHTML = `
+        <input type="text" placeholder="Title" class="link-title flex-1 bg-white/10 text-white text-sm rounded px-2 py-1" />
+        <input type="text" placeholder="URL" class="link-url flex-1 bg-white/10 text-white text-sm rounded px-2 py-1" />
+        <button type="button" onclick="this.parentElement.remove()" class="text-red-400 text-xs">✕</button>
+      `;
+      container.appendChild(div);
+    }
+
+    function prepareData() {
+      const codeExamples = [...document.querySelectorAll(".code-example-row")].map((row) => ({
+        language: row.querySelector(".ce-lang").value,
+        code: row.querySelector(".ce-code").value,
+        description: row.querySelector(".ce-desc").value,
+      }));
+      document.getElementById("codeExamplesInput").value = JSON.stringify(codeExamples);
+
+      const links = [...document.querySelectorAll(".link-row")].map((row) => ({
+        title: row.querySelector(".link-title").value,
+        url: row.querySelector(".link-url").value,
+      }));
+      document.getElementById("linksInput").value = JSON.stringify(links);
+
+      return true;
+    }
+  </script>
+</body>
+</html>

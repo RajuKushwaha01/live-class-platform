@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Assignments</title>
+  <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/theme.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="relative min-h-screen">
+  <%- include('../partials/sidebar', { role: 'host', active: 'assignments' }) %>
+  <main class="ml-64 p-8 relative z-10">
+    <div class="fixed top-4 right-6 z-30">
+        <%- include('../partials/notification-bell', { userId: user._id }) %>
+        <%- include('../partials/live-meeting-alert') %>
+    </div>
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-white text-3xl font-bold">📋 All Assignments</h1>
+      <a href="/assignment/create" class="btn-glow text-white text-sm px-5 py-2.5 rounded-lg">+ New Assignment</a>
+    </div>
+    <div class="glass-card overflow-hidden">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-white/10 text-gray-300"><tr><th class="p-4">Title</th><th class="p-4">Type</th><th class="p-4">Submissions</th><th class="p-4">Actions</th></tr></thead>
+        <tbody class="text-white">
+          <% assignments.forEach(a => { %>
+            <tr class="border-t border-white/10">
+              <td class="p-4"><%= a.title %></td>
+              <td class="p-4 capitalize text-gray-400"><%= a.type.replace('_',' ') %></td>
+              <td class="p-4"><%= a.submissions.length %></td>
+              <td class="p-4 flex gap-2">
+                <a href="/assignment/grade/<%= a._id %>" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded-lg">Grade / View Answers</a>
+                <a href="/assignment/results/<%= a._id %>" class="bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-1.5 rounded-lg">Results Chart</a>
+              </td>
+            </tr>
+          <% }) %>
+          <% if (assignments.length === 0) { %><tr><td colspan="4" class="p-6 text-center text-gray-500">No assignments yet.</td></tr><% } %>
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

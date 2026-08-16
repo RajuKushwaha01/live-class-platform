@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>Waiting Room</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/animations.css" />
+  <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="relative min-h-screen flex items-center justify-center">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <div class="glass-card p-10 max-w-md w-full text-center relative z-10">
+    <div class="loader-ring mx-auto mb-6"></div>
+    <h2 class="text-white text-xl font-bold mb-2">You're in the Waiting Room</h2>
+    <p class="text-gray-400 text-sm mb-1"><%= meeting.title %></p>
+    <p class="text-gray-500 text-xs">Waiting for <%= meeting.host.name %> to let you in...</p>
+  </div>
+
+  <script>
+    const socket = io();
+    socket.emit("join-room", {
+      meetingCode: "<%= meeting.meetingCode %>",
+      userId: "<%= user._id %>",
+      name: "<%= user.name %>",
+      role: "<%= user.role %>",
+      isHost: false,
+    });
+
+    socket.on("admitted", () => {
+      window.location.href = "/meeting/room/<%= meeting.meetingCode %>";
+    });
+
+    socket.on("denied", () => {
+      alert("The host denied your request to join.");
+      window.location.href = "/participant/dashboard";
+    });
+  </script>
+</body>
+</html>

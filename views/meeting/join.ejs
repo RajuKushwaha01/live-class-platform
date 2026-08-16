@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Join Meeting</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/animations.css" />
+  <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    /* ⭐ FALLBACK — guarantees a dark themed background even if Tailwind CDN fails to load */
+    body {
+      background: #05060f;
+      background: linear-gradient(135deg, #1e1b4b 0%, #0f0a2e 50%, #05060f 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+      color: #f1f5f9;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 min-h-screen flex items-center justify-center px-6 form-page-padding">
+
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <div id="joinCard" class="glass-card p-10 max-w-md w-full text-center shadow-2xl relative z-10"
+       style="background: rgba(255,255,255,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px;">
+
+    <h2 class="text-white text-2xl font-bold mb-1" style="color: #fff;"><%= meeting.title %></h2>
+    <p class="text-gray-400 mb-1" style="color: #94a3b8;">Chapter: <%= meeting.chapterName %></p>
+    <p class="text-gray-500 text-sm mb-6" style="color: #64748b;">Hosted by <%= meeting.host.name %></p>
+
+    <% if (typeof error !== "undefined" && error) { %>
+      <div class="px-4 py-2 rounded-lg mb-4 text-sm"
+           style="background: rgba(239,68,68,0.2); border: 1px solid #ef4444; color: #fca5a5;">
+        <%= error %>
+      </div>
+    <% } %>
+
+    <form action="/meeting/<%= meeting.meetingCode %>/join" method="POST" class="space-y-4">
+      <% if (meeting.meetingPassword) { %>
+        <input type="password" name="password" placeholder="Meeting Password" required
+          class="w-full rounded-xl px-4 py-3 focus:outline-none"
+          style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff;" />
+      <% } %>
+
+      <button type="submit" class="w-full text-white py-3 rounded-xl font-semibold"
+        style="background: linear-gradient(135deg, #818cf8, #c084fc); border: none; cursor: pointer;">
+        Join Meeting
+      </button>
+    </form>
+
+    <p class="mt-6 text-sm" style="color: #94a3b8;">
+      <a href="/<%= user.role %>/dashboard" style="color: #a5b4fc;">← Back to Dashboard</a>
+    </p>
+  </div>
+
+  <script>
+    if (typeof gsap !== "undefined") {
+      gsap.from("#joinCard", { opacity: 0, scale: 0.9, duration: 0.7, ease: "back.out(1.7)" });
+    }
+  </script>
+</body>
+</html>

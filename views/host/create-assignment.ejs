@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>Create Assignment</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+</head>
+ <!-- NEW -->
+<body class="relative min-h-screen flex items-center justify-center px-4 sm:px-6 py-8 form-page-padding">
+<div class="blob blob-1"></div><div class="blob blob-2"></div>
+
+  <div id="card" class="max-w-3xl mx-auto glass-card p-8 relative z-10">
+    <h2 class="text-white text-2xl font-bold mb-1">📝 Create Assignment / Quiz</h2>
+    <% if (error) { %><div class="bg-red-500/20 border border-red-500 text-red-300 px-4 py-2 rounded-lg mb-4 text-sm"><%= error %></div><% } %>
+
+    <form action="/assignment/create" method="POST" enctype="multipart/form-data" class="space-y-4">
+      <input type="hidden" name="meetingId" value="" />
+      <input type="text" name="title" placeholder="Assignment Title" required class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3" />
+
+      <select name="type" class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3">
+        <option value="homework" class="text-black">Homework</option>
+        <option value="quiz" class="text-black">Quiz</option>
+        <option value="assignment" class="text-black">Assignment</option>
+        <option value="chapter_test" class="text-black">Chapter Test</option>
+        <option value="coding_challenge" class="text-black">Coding Challenge</option>
+      </select>
+
+      <textarea name="description" placeholder="Description" rows="2" class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3"></textarea>
+      <input type="datetime-local" name="dueDate" class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3" />
+
+      <div id="questionsContainer" class="space-y-5"></div>
+      <button type="button" onclick="addQuestion()" class="text-indigo-400 text-sm">+ Add Question</button>
+
+      <input type="hidden" name="questionsData" id="questionsData" />
+      <button type="submit" onclick="return buildQuestions()" class="btn-glow w-full text-white py-3 rounded-xl font-semibold">Publish Assignment</button>
+    </form>
+  </div>
+
+<script>
+gsap.from("#card", { opacity: 0, y: 30, duration: 0.7 });
+let qCount = 0;
+
+function addQuestion() {
+  const i = qCount++;
+  const container = document.getElementById("questionsContainer");
+  const div = document.createElement("div");
+  div.className = "question-row bg-black/30 rounded-xl p-4 space-y-3";
+  div.dataset.index = i;
+  div.innerHTML = `
+    <div class="flex justify-between items-center">
+      <span class="text-indigo-300 text-sm font-semibold">Question ${i + 1}</span>
+      <button type="button" onclick="this.closest('.question-row').remove()" class="text-red-400 text-xs">Remove</button>
+    </div>
+    <input type="text" placeholder="Question text" class="q-text w-full bg-white/10 text-white text-sm rounded px-3 py-2" />
+    <div>
+      <label class="text-gray-400 text-xs">Question Image (optional)</label>
+      <input type="file" name="q${i}_image" accept="image/*" class="w-full bg-white/10 text-white text-xs rounded px-2 py-1.5 mt-1" />
+    </div>
+    <select class="q-type w-full bg-white/10 text-white text-sm rounded px-3 py-2" onchange="renderTypeFields(${i}, this.value)">
+      <option value="mcq" class="text-black">MCQ (4 options)</option>
+      <option value="true_false" class="text-black">True / False</option>
+      <option value="short_answer" class="text-black">Short Answer</option>
+      <option value="coding" class="text-black">Coding</option>
+    </select>
+    <div class="type-fields"></div>
+    <div>
+      <label class="text-gray-400 text-xs">Points</label>
+      <input type="number" value="1" min="1" class="q-points w-24 bg-white/10 text-white text-sm rounded px-2 py-1" />
+    </div>
+  `;
+  container.appendChild(div);
+  renderTypeFields(i, "mcq");
+}
+
+function renderTypeFields(i, type) {
+  const row = document.querySelector(`.question-row[data-index="${i}"]`);
+  const holder = row.querySelector(".type-fields");
+
+  if (type === "mcq") {
+    holder.innerHTML = `
+      <label class="text-gray-400 text-xs">4 Options — select the correct one</label>
+      <div class="space-y-2">
+        ${[0,1,2,3].map(o => `
+          <div class="flex items-center gap-2">
+            <input type="radio" name="q${i}_correct_radio" value="${o}" class="q-correct-radio" />
+            <input type="text" placeholder="Option ${o+1} text" class="q-option flex-1 bg-white/10 text-white text-sm rounded px-2 py-1.5" data-opt="${o}" />
+            <input type="file" name="q${i}_option${o}_image" accept="image/*" class="text-xs text-gray-400 w-32" title="Optional image for this option" />
+          </div>
+        `).join("")}
+      </div>`;
+  } else if (type === "true_false") {
+    holder.innerHTML = `
+      <label class="text-gray-400 text-xs">Correct Answer</label>
+      <div class="flex gap-4">
+        <label class="text-white text-sm flex items-center gap-1"><input type="radio" name="q${i}_tf" value="True" class="q-tf-radio" /> True</label>
+        <label class="text-white text-sm flex items-center gap-1"><input type="radio" name="q${i}_tf" value="False" class="q-tf-radio" /> False</label>
+      </div>`;
+  } else if (type === "short_answer") {
+    holder.innerHTML = `
+      <label class="text-gray-400 text-xs">Expected Answer (optional — for auto-grading)</label>
+      <input type="text" class="q-short-answer w-full bg-white/10 text-white text-sm rounded px-3 py-2" placeholder="Leave blank to grade manually" />`;
+  } else if (type === "coding") {
+    holder.innerHTML = `
+      <label class="text-gray-400 text-xs">Language</label>
+      <input type="text" class="q-code-lang w-full bg-white/10 text-white text-sm rounded px-3 py-2 mb-2" placeholder="e.g. Java, Python" />
+      <label class="text-gray-400 text-xs">Starter Code (shown to student)</label>
+      <textarea class="q-starter-code w-full bg-white/10 text-white font-mono text-xs rounded px-3 py-2" rows="4" placeholder="// starter code here"></textarea>
+      <p class="text-gray-500 text-xs mt-1">Coding answers are always graded manually by you.</p>`;
+  }
+}
+
+addQuestion();
+
+function buildQuestions() {
+  const questions = [...document.querySelectorAll(".question-row")].map((row) => {
+    const type = row.querySelector(".q-type").value;
+    const base = { questionText: row.querySelector(".q-text").value, type, points: Number(row.querySelector(".q-points").value) || 1 };
+    if (type === "mcq") {
+      const opts = [...row.querySelectorAll(".q-option")].map((o) => o.value);
+      const correctIdx = row.querySelector(".q-correct-radio:checked")?.value;
+      base.options = opts;
+      base.correctAnswer = correctIdx !== undefined ? opts[correctIdx] : "";
+    } else if (type === "true_false") {
+      base.options = ["True", "False"];
+      base.correctAnswer = row.querySelector(".q-tf-radio:checked")?.value || "";
+    } else if (type === "short_answer") {
+      base.correctAnswer = row.querySelector(".q-short-answer").value;
+    } else if (type === "coding") {
+      base.codeLanguage = row.querySelector(".q-code-lang").value;
+      base.starterCode = row.querySelector(".q-starter-code").value;
+    }
+    return base;
+  });
+  document.getElementById("questionsData").value = JSON.stringify(questions);
+  return true;
+}
+</script>
+</body>
+</html>

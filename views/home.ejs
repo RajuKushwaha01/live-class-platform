@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>EduLive — Teach. Connect. Learn. Together.</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/animations.css" />
+  <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+</head>
+<body class="relative">
+
+  <%- include('partials/particles-bg') %>
+  <%- include('partials/navbar') %>
+
+  <!-- HERO -->
+  <section id="home" class="relative min-h-screen flex items-center justify-center px-5 md:px-6 pt-20 z-10">
+    <div class="hero-grid max-w-6xl mx-auto grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+      <div>
+        <span class="hero-badge inline-block bg-indigo-500/20 border border-indigo-400/40 text-indigo-300 text-xs px-4 py-1.5 rounded-full mb-6">
+          ✨ Next-Gen Virtual Classroom
+        </span>
+        <h1 class="hero-title text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight mb-6">
+          <span class="inline-block">Teach.</span>
+          <span class="inline-block gradient-text">Connect.</span>
+          <span class="inline-block">Learn.</span>
+          <span class="inline-block gradient-text">Together.</span>
+        </h1>
+        <p class="hero-subtitle text-gray-400 text-lg mb-8 max-w-md">
+          A next-generation virtual classroom where teachers and students communicate, learn, collaborate and test their knowledge in real time.
+        </p>
+        <div class="hero-buttons flex flex-wrap gap-3 md:gap-4 justify-center md:justify-start">
+          <a href="/meeting/create" class="btn-glow text-white px-8 py-4 rounded-xl font-semibold flex items-center gap-2">
+            <i data-lucide="video"></i> Create Meeting
+          </a>
+          <a href="/auth/login" class="glass-card text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/10 transition flex items-center gap-2">
+            <i data-lucide="log-in"></i> Join Meeting
+          </a>
+        </div>
+      </div>
+
+       <div class="hero-visual relative h-[440px] flex items-center justify-center overflow-hidden">
+
+  <!-- Ambient holographic glow -->
+  <div class="absolute w-72 h-72 rounded-full bg-indigo-500/10 blur-3xl animate-pulse"></div>
+  <div class="absolute w-52 h-52 rounded-full bg-pink-500/10 blur-3xl translate-x-24 -translate-y-16"></div>
+
+  <!-- Holographic orbit system -->
+  <div class="absolute w-[390px] h-[390px] rounded-full border border-indigo-400/10"></div>
+  <div class="absolute w-[315px] h-[315px] rounded-full border border-purple-400/10 rotate-45"></div>
+  <div class="absolute w-[245px] h-[245px] rounded-full border border-pink-400/10 -rotate-45"></div>
+
+  <!-- Orbiting reaction nodes -->
+  <div class="absolute inset-0 pointer-events-none">
+
+    <div class="orbit orbit-one">
+      <div class="orbit-node node-indigo">🎉</div>
+    </div>
+
+    <div class="orbit orbit-two">
+      <div class="orbit-node node-purple">👍</div>
+    </div>
+
+    <div class="orbit orbit-three">
+      <div class="orbit-node node-pink">✋</div>
+    </div>
+
+  </div>
+
+  <!-- Floating connection particles -->
+  <div class="connection-dot dot-one"></div>
+  <div class="connection-dot dot-two"></div>
+  <div class="connection-dot dot-three"></div>
+  <div class="connection-dot dot-four"></div>
+
+  <!-- Main futuristic console -->
+  <div class="console-border w-full max-w-md shadow-2xl">
+
+    <div class="console-inner relative p-6">
+
+      <!-- Animated scanline -->
+      <div class="scanline"></div>
+
+      <!-- Holographic corner accents -->
+      <div class="corner-accent corner-tl"></div>
+      <div class="corner-accent corner-tr"></div>
+      <div class="corner-accent corner-bl"></div>
+      <div class="corner-accent corner-br"></div>
+
+      <!-- Top status row -->
+      <div class="flex items-center justify-between mb-5 relative z-10">
+
+        <div class="flex items-center gap-2">
+
+          <span class="relative flex w-2 h-2">
+            <span class="absolute inline-flex w-full h-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
+            <span class="relative w-2 h-2 rounded-full bg-red-400"></span>
+          </span>
+
+          <span class="text-red-400 text-xs font-semibold tracking-wide">
+            LIVE CLASS
+          </span>
+
+        </div>
+
+        <span class="text-gray-500 text-xs font-mono">
+          Chapter 3 — OOP
+        </span>
+
+      </div>
+
+      <!-- Participant avatar stack + waveform -->
+      <div class="flex items-center justify-between mb-5 relative z-10">
+
+        <div class="flex -space-x-3">
+
+          <div class="avatar-float online-dot w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 border-2 border-[#0b0d1c] flex items-center justify-center text-sm">
+            👩‍🎓
+          </div>
+
+          <div class="avatar-float online-dot w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 border-2 border-[#0b0d1c] flex items-center justify-center text-sm">
+            🧑‍💻
+          </div>
+
+          <div class="avatar-float online-dot w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 border-2 border-[#0b0d1c] flex items-center justify-center text-sm">
+            👨‍🏫
+          </div>
+
+          <div class="avatar-float w-10 h-10 rounded-full bg-white/10 border-2 border-[#0b0d1c] flex items-center justify-center text-xs text-gray-300">
+            +18
+          </div>
+
+        </div>
+
+        <!-- Live audio waveform -->
+        <div class="waveform">
+
+          <span class="bg-green-400"></span>
+          <span class="bg-green-400"></span>
+          <span class="bg-green-400"></span>
+          <span class="bg-green-400"></span>
+          <span class="bg-green-400"></span>
+
+        </div>
+
+      </div>
+
+      <!-- Score ring + live question card -->
+      <div class="grid grid-cols-3 gap-4 relative z-10">
+
+        <!-- Score -->
+        <div class="col-span-1 flex flex-col items-center justify-center bg-white/5 rounded-xl py-4 score-panel">
+
+          <svg class="score-ring w-16 h-16" viewBox="0 0 64 64">
+
+            <circle
+              cx="32"
+              cy="32"
+              r="26"
+              stroke="rgba(255,255,255,0.1)"
+              stroke-width="6"
+              fill="none"
+            />
+
+            <circle
+              cx="32"
+              cy="32"
+              r="26"
+              stroke="url(#scoreGrad)"
+              stroke-width="6"
+              fill="none"
+              stroke-dasharray="163"
+              stroke-dashoffset="30"
+              stroke-linecap="round"
+            />
+
+            <defs>
+
+              <linearGradient
+                id="scoreGrad"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+
+                <stop
+                  offset="0%"
+                  stop-color="#818cf8"
+                />
+
+                <stop
+                  offset="100%"
+                  stop-color="#f472b6"
+                />
+
+              </linearGradient>
+
+            </defs>
+
+          </svg>
+
+          <span class="text-white text-xs font-semibold -mt-11">
+            82%
+          </span>
+
+          <span class="text-gray-500 text-[10px] mt-6">
+            Avg. Score
+          </span>
+
+        </div>
+
+        <!-- Question -->
+        <div class="col-span-2 glass-card px-4 py-3 flex flex-col justify-center question-popup-animate">
+
+          <span class="text-white text-xs font-medium mb-1">
+            📋 "What is inheritance?"
+          </span>
+
+          <div class="flex items-center justify-between">
+
+            <span class="text-indigo-300 text-xs">
+              14 of 22 answered
+            </span>
+
+            <div class="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
+
+              <div
+                class="h-full progress-bar-fill"
+                style="width: 64%;"
+              ></div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="relative py-14 md:py-24 px-5 md:px-6 z-10">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="reveal-section text-4xl font-bold text-white text-center mb-4">Everything You Need to <span class="gradient-text">Teach Live</span></h2>
+      <p class="reveal-section text-gray-400 text-center mb-16 max-w-xl mx-auto">One platform for video classes, real-time Q&A, assignments and progress tracking.</p>
+
+      <div class="features-grid grid md:grid-cols-3 gap-5 md:gap-6">
+        <% const features = [
+          {icon: 'video', title: 'HD Video Classes', desc: 'Crystal clear video & audio powered by WebRTC for smooth live teaching.'},
+          {icon: 'message-circle', title: 'Real-time Chat', desc: 'Instant messaging, reactions and raise-hand for full participation.'},
+          {icon: 'book-open', title: 'Chapter Materials', desc: 'Share PDFs, notes, code examples and videos directly in class.'},
+          {icon: 'clipboard-check', title: 'Live Questions', desc: 'Send instant quizzes and see who answered correctly in real time.'},
+          {icon: 'bar-chart-3', title: 'Score Analytics', desc: 'Track assignment scores and class performance with visual charts.'},
+          {icon: 'shield-check', title: 'Secure & Controlled', desc: 'Role-based access with host controls for mute, remove & recording.'}
+        ]; %>
+        <% features.forEach(f => { %>
+          <div class="feature-card glass-card card-3d p-6">
+            <div class="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center mb-4">
+              <i data-lucide="<%= f.icon %>" class="text-indigo-300"></i>
+            </div>
+            <h3 class="text-white font-semibold text-lg mb-2"><%= f.title %></h3>
+            <p class="text-gray-400 text-sm"><%= f.desc %></p>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <!-- COURSES -->
+  <section id="courses" class="relative py-14 md:py-24 px-5 md:px-6 z-10">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="reveal-section text-4xl font-bold text-white text-center mb-4">Popular <span class="gradient-text">Course Categories</span></h2>
+      <p class="reveal-section text-gray-400 text-center mb-16 max-w-xl mx-auto">Teach or learn any subject with full support for slides, code, and live testing.</p>
+      <div class="courses-grid grid md:grid-cols-4 gap-5 md:gap-6">
+        <% const courses = [
+          { icon: 'code-2', title: 'Programming', desc: 'Java, Python, C++, Web Dev', color: 'from-indigo-500/20 to-indigo-500/5' },
+          { icon: 'calculator', title: 'Mathematics', desc: 'Algebra, Calculus, Statistics', color: 'from-purple-500/20 to-purple-500/5' },
+          { icon: 'flask-conical', title: 'Science', desc: 'Physics, Chemistry, Biology', color: 'from-pink-500/20 to-pink-500/5' },
+          { icon: 'languages', title: 'Languages', desc: 'English, Spanish, French', color: 'from-green-500/20 to-green-500/5' },
+        ]; %>
+        <% courses.forEach(c => { %>
+          <div class="feature-card glass-card card-3d p-6 bg-gradient-to-br <%= c.color %>">
+            <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-4"><i data-lucide="<%= c.icon %>" class="text-white"></i></div>
+            <h3 class="text-white font-semibold text-lg mb-1"><%= c.title %></h3>
+            <p class="text-gray-400 text-sm mb-4"><%= c.desc %></p>
+            <a href="/auth/register" class="text-indigo-300 text-sm hover:text-indigo-200">Explore →</a>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <!-- MEETINGS -->
+  <section id="meetings" class="relative py-14 md:py-24 px-5 md:px-6 z-10">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="reveal-section text-4xl font-bold text-white text-center mb-16">How <span class="gradient-text">Live Meetings</span> Work</h2>
+      <div class="space-y-8">
+        <% const steps = [
+          { icon: 'video-plus', title: 'Host Creates a Meeting', desc: 'Set chapter, date, password and get a unique link instantly.' },
+          { icon: 'share-2', title: 'Share the Link', desc: 'Send the meeting link + password to your students.' },
+          { icon: 'log-in', title: 'Participants Join', desc: 'Students log in and enter through the shared link — with optional waiting room.' },
+          { icon: 'presentation', title: 'Teach & Engage', desc: 'Share chapters, send live MCQ/coding questions, and chat in real time.' },
+          { icon: 'bar-chart-3', title: 'Track Results', desc: 'Auto-graded and manual scores feed straight into analytics.' },
+        ]; %>
+        <% steps.forEach((s) => { %>
+          <div class="reveal-section flex items-center gap-6">
+            <div class="w-12 h-12 shrink-0 rounded-full bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center"><i data-lucide="<%= s.icon %>" class="text-indigo-300 w-5 h-5"></i></div>
+            <div class="flex-1 glass-card card-3d p-5">
+              <h3 class="text-white font-semibold mb-1"><%= s.title %></h3>
+              <p class="text-gray-400 text-sm"><%= s.desc %></p>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="relative py-14 md:py-24 px-5 md:px-6 z-10">
+    <div class="reveal-section max-w-4xl mx-auto glass-card card-3d p-12 text-center">
+      <h2 class="text-3xl font-bold text-white mb-4">Ready to start teaching?</h2>
+      <p class="text-gray-400 mb-8">Create your first live classroom in under a minute.</p>
+      <a href="/auth/register" class="btn-glow inline-block text-white px-8 py-4 rounded-xl font-semibold">Get Started Free →</a>
+    </div>
+  </section>
+
+  <footer class="relative border-t border-white/10 py-8 text-center text-gray-500 text-sm z-10">
+    © 2026 EduLive. Built with ❤️ for educators everywhere.
+  </footer>
+
+  <script src="/js/particles.js"></script>
+  <script src="/js/page-animations.js"></script>
+  <script>
+    lucide.createIcons();
+    initParticles("particlesCanvas");
+  </script>
+</body>
+</html>

@@ -1,59 +1,58 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <title>Grade — <%= assignment.title %></title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/theme.css" />
-  <link rel="stylesheet" href="/css/responsive.css" />
-  <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-<body class="relative min-h-screen">
-  <%- include('../partials/sidebar', { role: 'host', active: 'assignments' }) %>
+<%- include('../partials/shell-top', { role: 'host', active: 'assignments', title: 'Grading' }) %>
+<% const subs = assignment.submissions; const pendingN = subs.filter(s => !s.isGraded).length; %>
+<a class="link" href="/host/assignments">← Back to assignments</a>
+<div class="page-head mt-s">
+  <div><span class="badge b-accent"><%= assignment.type.replace('_', ' ') %></span><h2><%= assignment.title %></h2><p class="muted"><%= subs.length %> submission<%= subs.length === 1 ? '' : 's' %> · <%= pendingN %> waiting for marks</p></div>
+  <a class="btn btn-ghost" href="/assignment/results/<%= assignment._id %>"><i data-lucide="bar-chart-3"></i> Results</a>
+</div>
 
-  <main class="ml-64 p-8 relative z-10">
-    <h1 class="text-white text-2xl font-bold mb-1"><%= assignment.title %> — Grading</h1>
-    <p class="text-gray-400 mb-6"><%= assignment.submissions.length %> submissions</p>
+<div class="toolbar">
+  <div class="searchbox"><i data-lucide="search"></i><input class="input" data-search-for="#gList" placeholder="Search student…" /></div>
+  <div class="tabs" data-filter-for="#gList"><button class="on" data-f="all">All</button><button data-f="pending">Needs grading</button><button data-f="graded">Graded</button></div>
+</div>
 
-    <% assignment.submissions.forEach(sub => { %>
-      <div class="glass-card p-6 mb-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-white font-semibold"><%= sub.participantName %></h3>
-          <span class="text-indigo-300 text-sm">Total: <%= sub.totalScore %> / <%= sub.maxScore %></span>
+<div id="gList" data-list class="col">
+  <% subs.forEach(sub => { %>
+    <article class="card" data-item data-status="<%= sub.isGraded ? 'graded' : 'pending' %>">
+      <div class="row between wrap">
+        <div class="row"><span class="avatar"><%= (sub.participantName || '?').slice(0, 1).toUpperCase() %></span>
+          <div><b><%= sub.participantName %></b><div class="muted small">Submitted <%= new Date(sub.submittedAt).toLocaleString() %></div></div></div>
+        <div class="row gap-s">
+          <% if (sub.fileUpload) { %><a class="btn btn-ghost btn-sm" target="_blank" href="<%= sub.fileUpload %>"><i data-lucide="paperclip"></i> File</a><% } %>
+          <span class="badge <%= sub.isGraded ? 'b-green' : 'b-amber' %>"><%= sub.isGraded ? 'Graded' : 'Needs grading' %></span>
+          <b><%= sub.totalScore %>/<%= sub.maxScore %></b>
         </div>
-
-        <form action="/assignment/grade/<%= assignment._id %>/<%= sub._id %>" method="POST" onsubmit="return buildPoints(this)">
-          <div class="space-y-4">
-            <% sub.answers.forEach((ans) => {
-              const q = assignment.questions[ans.questionIndex];
-            %>
-              <div class="bg-black/30 rounded-lg p-4">
-                <p class="text-white text-sm mb-1">Q<%= ans.questionIndex + 1 %>. <%= q.questionText %> <span class="text-gray-500 text-xs">(max <%= q.points %> pts)</span></p>
-                <p class="text-gray-400 text-sm mb-2 font-mono bg-white/5 rounded p-2 whitespace-pre-wrap"><%= ans.answerText %></p>
-                <label class="text-gray-400 text-xs">Points awarded:</label>
-                <input type="number" min="0" max="<%= q.points %>" value="<%= ans.pointsAwarded %>"
-                  class="points-input w-24 bg-white/10 text-white text-sm rounded px-2 py-1 ml-2"
-                  data-question-index="<%= ans.questionIndex %>" />
-              </div>
-            <% }) %>
-          </div>
-          <input type="hidden" name="pointsData" class="pointsData" />
-          <button type="submit" class="btn-glow mt-4 text-white text-sm px-5 py-2 rounded-lg">Save Grade</button>
-        </form>
       </div>
-    <% }) %>
-  </main>
 
-  <script>
-    lucide.createIcons();
-    function buildPoints(form) {
-      const points = [...form.querySelectorAll(".points-input")].map((inp) => ({
-        questionIndex: Number(inp.dataset.questionIndex),
-        pointsAwarded: Number(inp.value),
-      }));
-      form.querySelector(".pointsData").value = JSON.stringify(points);
-      return true;
-    }
-  </script>
-</body>
-</html>
+      <form class="gform mt" action="/assignment/grade/<%= assignment._id %>/<%= sub._id %>" method="POST">
+        <% sub.answers.forEach(ans => { const q = assignment.questions[ans.questionIndex]; if (!q) return; %>
+          <div class="q mb">
+            <div class="row between wrap"><b>Q<%= ans.questionIndex + 1 %>. <%= q.questionText %></b><span class="badge"><%= q.type.replace('_', ' ') %> · max <%= q.points %></span></div>
+            <% if (q.type === 'coding') { %><pre class="code mt-s"><%= ans.answerText || '(no answer)' %></pre>
+            <% } else { %><div class="mt-s">Answer: <b><%= ans.answerText || '(no answer)' %></b></div><% } %>
+            <% if (q.correctAnswer && q.type !== 'coding') { %><div class="small mt-s" style="color:var(--ok)">Expected: <b><%= q.correctAnswer %></b></div><% } %>
+            <div class="row mt-s wrap">
+              <label class="muted small">Marks</label>
+              <input type="number" class="input sm pts" style="width:90px" min="0" max="<%= q.points %>" step="0.5" value="<%= ans.pointsAwarded %>" data-qi="<%= ans.questionIndex %>" />
+              <button type="button" class="btn btn-soft btn-sm" onclick="var i=this.parentNode.querySelector('.pts');i.value=i.max">Full marks</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="this.parentNode.querySelector('.pts').value=0">Zero</button>
+            </div>
+          </div>
+        <% }) %>
+        <input type="hidden" name="pointsData" class="pointsData" />
+        <button class="btn btn-primary"><i data-lucide="check"></i> Save marks &amp; notify student</button>
+      </form>
+    </article>
+  <% }) %>
+</div>
+<div class="empty" data-empty-for="#gList" <%= subs.length ? 'hidden' : '' %>><div class="ico"><i data-lucide="inbox"></i></div>No submissions yet. They appear here instantly when students submit.</div>
+
+<script>
+  document.querySelectorAll('.gform').forEach(function (f) {
+    f.addEventListener('submit', function () {
+      var pts = Array.prototype.map.call(f.querySelectorAll('.pts'), function (i) { return { questionIndex: Number(i.dataset.qi), pointsAwarded: Number(i.value) || 0 }; });
+      f.querySelector('.pointsData').value = JSON.stringify(pts);
+    });
+  });
+</script>
+<%- include('../partials/shell-bottom') %>

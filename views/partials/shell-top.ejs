@@ -1,0 +1,141 @@
+<%
+  const u = (typeof user !== 'undefined' && user) ? user : ((typeof currentUser !== 'undefined' && currentUser) ? currentUser : { name: 'User', email: '', role: 'participant', _id: '' });
+  const R = (typeof role !== 'undefined' && role) ? role : u.role;
+  const A = (typeof active !== 'undefined') ? active : '';
+  const T = (typeof title !== 'undefined') ? title : 'EduLive';
+  const label = { participant: 'Student', host: 'Teacher', admin: 'Admin' }[R] || 'User';
+  const NAV = {
+    participant: [
+      { s: 'Learn', items: [
+        ['dashboard', '/participant/dashboard', 'layout-dashboard', 'Dashboard'],
+        ['meetings', '/participant/meetings', 'video', 'Classes'],
+        ['assignments', '/assignment/my-assignments', 'clipboard-list', 'Tasks'],
+        ['materials', '/participant/materials', 'folder-open', 'Materials'] ] },
+      { s: 'Progress', items: [ ['leaderboard', '/participant/leaderboard', 'trophy', 'Leaderboard'] ] },
+      { s: 'Account', items: [ ['settings', '/account/settings', 'settings', 'Settings'] ] }
+    ],
+    host: [
+      { s: 'Teach', items: [
+        ['dashboard', '/host/dashboard', 'layout-dashboard', 'Dashboard'],
+        ['meetings', '/host/meetings', 'video', 'Meetings'],
+        ['students', '/host/students', 'users', 'Students'],
+        ['materials', '/host/materials', 'folder-open', 'Materials'] ] },
+      { s: 'Assess', items: [
+        ['questions', '/host/questions', 'help-circle', 'Question bank'],
+        ['assignments', '/host/assignments', 'clipboard-check', 'Assignments'] ] },
+      { s: 'Account', items: [ ['settings', '/account/settings', 'settings', 'Settings'] ] }
+    ],
+    admin: [
+      { s: 'Overview', items: [
+        ['dashboard', '/admin/dashboard', 'layout-dashboard', 'Dashboard'],
+        ['live', '/admin/live-monitor', 'radio', 'Live monitor'] ] },
+      { s: 'Manage', items: [
+        ['users', '/admin/users', 'users', 'Users'],
+        ['meetings', '/admin/meetings', 'video', 'Meetings'] ] },
+      { s: 'Account', items: [ ['settings', '/account/settings', 'settings', 'Settings'] ] }
+    ]
+  };
+  const groups = NAV[R] || NAV.participant;
+  const flat = groups.reduce((a, g) => a.concat(g.items), []);
+  const cmd = flat.map(i => ({ label: i[3], href: i[1], icon: i[2], group: 'Go to' }));
+  if (R === 'host') {
+    cmd.push({ label: 'Create meeting', href: '/meeting/create', icon: 'plus-circle', group: 'Action' });
+    cmd.push({ label: 'Create assignment', href: '/assignment/create', icon: 'file-plus', group: 'Action' });
+  }
+  cmd.push({ label: 'Log out', href: '/auth/logout', icon: 'log-out', group: 'Account' });
+  const initials = ((u.name || 'U').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('') || 'U').toUpperCase();
+  const bnav = flat.filter(i => i[0] !== 'settings').slice(0, 4).concat([flat.find(i => i[0] === 'settings')]);
+%><!DOCTYPE html>
+<html lang="en" class="js" data-role="<%= R %>">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title><%= T %> · EduLive</title>
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script>
+    window.cssVar = function (n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); };
+    window.__ROLE = "<%= R %>";
+    window.__CMD = <%- JSON.stringify(cmd).replace(/</g, '\\u003c') %>;
+    if (window.Chart) { Chart.defaults.color = '#8d99c0'; Chart.defaults.font.family = "'Plus Jakarta Sans',sans-serif"; Chart.defaults.borderColor = 'rgba(128,128,128,.16)'; }
+  </script>
+</head>
+<body data-uid="<%= u._id %>">
+<div class="app">
+
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="/"><span class="logo">E</span><span>EduLive<small><%= label %></small></span></a>
+    <nav class="nav">
+      <% groups.forEach(g => { %>
+        <div class="nav-label"><%= g.s %></div>
+        <% g.items.forEach(i => { %>
+          <a class="nav-link <%= A === i[0] ? 'active' : '' %>" href="<%= i[1] %>"><i data-lucide="<%= i[2] %>"></i><span><%= i[3] %></span></a>
+        <% }) %>
+      <% }) %>
+    </nav>
+
+    <% if (R === 'participant') { %>
+      <div class="side-card"><b>Join a class</b><small>Enter the meeting code from your teacher.</small>
+        <form class="joinform" onsubmit="event.preventDefault();var c=this.code.value.trim().toUpperCase();if(c)location.href='/meeting/'+encodeURIComponent(c);">
+          <input class="input sm" name="code" placeholder="e.g. AB12CD34" autocomplete="off" /><button class="btn btn-primary btn-sm">Go</button>
+        </form></div>
+    <% } else if (R === 'host') { %>
+      <div class="side-card"><b>Ready to teach?</b><small>Create a class and share the link.</small>
+        <a class="btn btn-primary btn-sm btn-block" href="/meeting/create"><i data-lucide="plus"></i> New meeting</a></div>
+    <% } else { %>
+      <div class="side-card"><b>Live now</b><small>Watch every active classroom in real time.</small>
+        <a class="btn btn-primary btn-sm btn-block" href="/admin/live-monitor"><i data-lucide="radio"></i> Open monitor</a></div>
+    <% } %>
+
+    <div class="user-card">
+      <span class="avatar"><%= initials %></span>
+      <div class="grow"><b class="truncate"><%= u.name %></b><small class="truncate"><%= u.email %></small></div>
+      <a class="icon-btn" href="/auth/logout" title="Log out" style="width:34px;height:34px"><i data-lucide="log-out"></i></a>
+    </div>
+  </aside>
+
+  <div class="overlay" id="overlay"></div>
+
+  <nav class="bnav">
+    <% bnav.forEach(i => { %><a href="<%= i[1] %>" class="<%= A === i[0] ? 'active' : '' %>"><i data-lucide="<%= i[2] %>"></i><%= i[3].split(' ')[0] %></a><% }) %>
+  </nav>
+
+  <div class="palette" id="palette">
+    <div class="pal-box">
+      <div class="pal-in"><i data-lucide="search"></i><input id="palInput" placeholder="Search pages, actions… or paste a meeting code" autocomplete="off" /><kbd>Esc</kbd></div>
+      <div class="pal-list" id="palList"></div>
+    </div>
+  </div>
+  <div id="toasts"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn only-mobile" id="menuBtn" aria-label="Menu"><i data-lucide="menu"></i></button>
+      <h1><%= T %></h1>
+      <button class="search-btn" id="palOpen"><i data-lucide="search"></i><span>Search or jump to…</span><kbd>Ctrl K</kbd></button>
+      <div class="top-actions">
+        <button class="icon-btn" id="themeToggle" title="Toggle light / dark"><i data-lucide="sun-moon"></i></button>
+        <div class="dd">
+          <button class="icon-btn" data-dd title="Notifications"><i data-lucide="bell"></i><span class="dot" id="bellDot" hidden>0</span></button>
+          <div class="dd-menu notif">
+            <div class="dd-head"><b>Notifications</b><button class="link" id="markAll">Mark all read</button></div>
+            <div class="notif-list" id="notifList"><div class="empty-s">Loading…</div></div>
+          </div>
+        </div>
+        <div class="dd">
+          <button class="profile-btn" data-dd><span class="avatar" style="width:32px;height:32px;border-radius:10px"><%= initials %></span><span class="nm truncate"><%= u.name.split(' ')[0] %></span></button>
+          <div class="dd-menu">
+            <div style="padding:8px 12px 10px"><b><%= u.name %></b><div class="muted small"><%= label %> account</div></div>
+            <a class="mi" href="/account/settings"><i data-lucide="settings"></i> Account settings</a>
+            <a class="mi" href="/"><i data-lucide="home"></i> Home page</a>
+            <a class="mi" href="/auth/logout" style="color:var(--bad)"><i data-lucide="log-out"></i> Log out</a>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="page">

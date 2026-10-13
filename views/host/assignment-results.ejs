@@ -1,70 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-  <title>Assignment Results</title>
-  <link rel="stylesheet" href="/css/responsive.css" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-</head>
-<body class="bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 min-h-screen p-6">
+<%- include('../partials/shell-top', { role: 'host', active: 'assignments', title: 'Results' }) %>
+<%
+  const J = v => JSON.stringify(v).replace(/</g, '\\u003c');
+  const subs = assignment.submissions;
+  const pcts = subs.map(s => s.maxScore ? Math.round(s.totalScore / s.maxScore * 100) : 0);
+  const avg = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
+  const hi = pcts.length ? Math.max.apply(null, pcts) : 0;
+  const pass = pcts.length ? Math.round(pcts.filter(p => p >= 50).length / pcts.length * 100) : 0;
+  const ranked = subs.map((s, i) => ({ s: s, p: pcts[i] })).sort((a, b) => b.p - a.p);
+  const cards = [['inbox', 'Submissions', subs.length, ''], ['percent', 'Average', avg, '%'], ['trophy', 'Highest', hi, '%'], ['badge-check', 'Pass rate (≥50%)', pass, '%']];
+%>
+<a class="link" href="/host/assignments">← Back to assignments</a>
+<div class="page-head mt-s">
+  <div><span class="badge b-accent"><%= assignment.type.replace('_', ' ') %></span><h2><%= assignment.title %> — results</h2></div>
+  <a class="btn btn-primary" href="/assignment/grade/<%= assignment._id %>"><i data-lucide="pen-line"></i> Grade submissions</a>
+</div>
 
-  <div class="max-w-5xl mx-auto">
-    <h2 class="text-white text-3xl font-bold mb-1"><%= assignment.title %> — Results</h2>
-    <p class="text-gray-400 mb-6"><%= assignment.submissions.length %> submissions • Average Score: <%= avgScore %></p>
+<section class="grid g4 mb">
+  <% cards.forEach(c => { %><div class="card stat reveal"><span class="ico"><i data-lucide="<%= c[0] %>"></i></span><b><span data-count="<%= c[2] %>">0</span><%= c[3] %></b><span class="muted small"><%= c[1] %></span></div><% }) %>
+</section>
 
-    <div id="chartCard" class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 mb-8">
-      <canvas id="scoreChart" height="90"></canvas>
-    </div>
+<div class="card mb reveal"><div class="card-h"><h3>Scores by student</h3></div><div class="chart"><canvas id="scoreChart"></canvas></div></div>
 
-    <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden">
-      <table class="responsive-table w-full text-left text-sm">
-        <thead class="bg-white/10 text-gray-300">
-          <tr>
-            <th class="p-3">Participant</th>
-            <th class="p-3">Score</th>
-            <th class="p-3">Submitted At</th>
-          </tr>
-        </thead>
-        <tbody class="text-white">
-          <% assignment.submissions.forEach(s => { %>
-            <tr class="border-t border-white/10">
-              <td class="p-3" data-label="Participant"><%= s.participantName %></td>
-              <td class="p-3" data-label="Score"><%= s.totalScore %> / <%= s.maxScore %></td>
-              <td class="p-3 text-gray-400" data-label="Submitted At"><%= new Date(s.submittedAt).toLocaleString() %></td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-  </div>
+<div class="card reveal">
+  <div class="card-h"><h3>Ranking</h3></div>
+  <div class="table-wrap"><table class="tbl">
+    <thead><tr><th>#</th><th>Student</th><th>Score</th><th>%</th><th>Status</th><th>Submitted</th></tr></thead>
+    <tbody>
+      <% ranked.forEach((r, i) => { %>
+        <tr><td><b><%= i + 1 %></b></td><td><%= r.s.participantName %></td><td><%= r.s.totalScore %>/<%= r.s.maxScore %></td>
+          <td><span class="badge <%= r.p >= 75 ? 'b-green' : r.p >= 50 ? 'b-amber' : 'b-red' %>"><%= r.p %>%</span></td>
+          <td><%= r.s.isGraded ? 'Graded' : 'Needs grading' %></td><td class="muted small"><%= new Date(r.s.submittedAt).toLocaleString() %></td></tr>
+      <% }) %>
+      <% if (!ranked.length) { %><tr><td colspan="6" class="empty-s">No submissions yet</td></tr><% } %>
+    </tbody>
+  </table></div>
+</div>
 
-  <script>
-    gsap.from("#chartCard", { opacity: 0, y: 30, duration: 0.7 });
-
-    const labels = <%- JSON.stringify(assignment.submissions.map(s => s.participantName)) %>;
-    const scores = <%- JSON.stringify(assignment.submissions.map(s => s.totalScore)) %>;
-
-    new Chart(document.getElementById("scoreChart"), {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [{
-          label: "Score",
-          data: scores,
-          backgroundColor: "rgba(129, 140, 248, 0.7)",
-          borderRadius: 8,
-        }],
-      },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { ticks: { color: "#cbd5e1" }, grid: { color: "rgba(255,255,255,0.1)" } },
-          x: { ticks: { color: "#cbd5e1" }, grid: { display: false } },
-        },
-      },
-    });
-  </script>
-</body>
-</html>
+<script>
+(function () {
+  var el = document.getElementById('scoreChart'); if (!el || !window.Chart) return;
+  new Chart(el, { type: 'bar', data: { labels: <%- J(subs.map(s => s.participantName)) %>, datasets: [{ data: <%- J(pcts) %>, backgroundColor: cssVar('--a1'), borderRadius: 8, maxBarThickness: 36 }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100, ticks: { callback: function (v) { return v + '%'; } } }, x: { grid: { display: false } } } } });
+})();
+</script>
+<%- include('../partials/shell-bottom') %>

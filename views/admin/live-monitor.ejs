@@ -1,43 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <title>Live Monitor — Admin</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/theme.css" />
-  <link rel="stylesheet" href="/css/responsive.css" />
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-</head>
-<body class="relative min-h-screen">
-  <div class="blob blob-1"></div>
-  <div class="blob blob-3"></div>
+<%- include('../partials/shell-top', { role: 'admin', active: 'live', title: 'Live monitor' }) %>
+<div class="page-head">
+  <div><span class="badge b-red"><span class="live-dot"></span> Real time</span><h2>Live monitor</h2><p class="muted"><%= liveMeetings.length %> class<%= liveMeetings.length === 1 ? '' : 'es' %> in session · refreshes every 20 seconds.</p></div>
+  <button class="btn btn-ghost" onclick="location.reload()"><i data-lucide="refresh-cw"></i> Refresh</button>
+</div>
 
-  <%- include('../partials/sidebar', { role: 'admin', active: 'dashboard' }) %>
-
-  <main class="ml-64 p-8 relative z-10 page-fade-in">
-    <h1 class="text-white text-3xl font-bold mb-6">🔴 Live Meeting Monitor</h1>
-
-    <div class="grid md:grid-cols-2 gap-5">
-      <% liveMeetings.forEach(m => { %>
-        <div class="glass-card card-3d p-5">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-white font-semibold"><%= m.title %></h3>
-            <span class="text-red-400 text-xs flex items-center gap-1">
-              <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> LIVE
-            </span>
-          </div>
-          <p class="text-gray-400 text-sm mb-1">Host: <%= m.host.name %></p>
-          <p class="text-gray-500 text-xs mb-4"><%= m.participants.length %> participants • Code: <%= m.meetingCode %></p>
-          <a href="/meeting/room/<%= m.meetingCode %>" class="btn-glow inline-block text-white text-xs px-4 py-2 rounded-lg">Monitor →</a>
-        </div>
-      <% }) %>
-      <% if (liveMeetings.length === 0) { %>
-        <p class="text-gray-500">No meetings are currently live.</p>
-      <% } %>
-    </div>
-  </main>
-
-  <script>lucide.createIcons();</script>
-</body>
-</html>
+<div class="grid g-auto">
+  <% liveMeetings.forEach(m => { %>
+    <article class="card hover reveal">
+      <div class="row between"><span class="ico"><i data-lucide="radio"></i></span><span class="badge b-red"><span class="live-dot"></span> <span data-since="<%= m.startedAt ? new Date(m.startedAt).toISOString() : new Date().toISOString() %>">0:00</span></span></div>
+      <h3 class="mt-s truncate"><%= m.title %></h3>
+      <p class="muted small truncate"><%= m.chapterName || 'Class session' %></p>
+      <div class="row between mt-s item" style="padding:10px 12px">
+        <span><i data-lucide="user" style="width:14px;height:14px"></i> <%= m.host ? m.host.name : '—' %></span>
+        <span><i data-lucide="users" style="width:14px;height:14px"></i> <%= m.participants.length %></span>
+        <span class="mono small"><%= m.meetingCode %></span>
+      </div>
+      <div class="row gap-s mt">
+        <a class="btn btn-primary btn-sm grow" href="/meeting/room/<%= m.meetingCode %>"><i data-lucide="eye"></i> Monitor</a>
+        <form action="/admin/meetings/<%= m.meetingCode %>/end" method="POST" data-confirm="End this meeting for everyone?"><button class="btn btn-danger btn-sm"><i data-lucide="power"></i> End</button></form>
+      </div>
+    </article>
+  <% }) %>
+</div>
+<% if (!liveMeetings.length) { %><div class="card empty"><div class="ico"><i data-lucide="radio"></i></div>No classes are live right now.</div><% } %>
+<script>setTimeout(function () { location.reload(); }, 20000);</script>
+<%- include('../partials/shell-bottom') %>

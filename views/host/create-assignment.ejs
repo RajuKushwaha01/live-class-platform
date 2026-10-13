@@ -1,143 +1,129 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <title>Create Assignment</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/theme.css" />
-  <link rel="stylesheet" href="/css/responsive.css" />
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-</head>
- <!-- NEW -->
-<body class="relative min-h-screen flex items-center justify-center px-4 sm:px-6 py-8 form-page-padding">
-<div class="blob blob-1"></div><div class="blob blob-2"></div>
+<%- include('../partials/shell-top', { role: 'host', active: 'assignments', title: 'New assignment' }) %>
+<%
+  const err = (typeof error !== 'undefined') ? error : null;
+  const mts = (typeof meetings !== 'undefined') ? meetings : [];
+  const sel = (typeof selectedId !== 'undefined') ? selectedId : '';
+%>
+<div class="page-head"><div><span class="badge b-accent">Assess</span><h2>Create assignment</h2><p class="muted">MCQ (4 options), True/False, short answer and coding — students are notified instantly.</p></div></div>
+<% if (err) { %><div class="alert err"><%= err %></div><% } %>
 
-  <div id="card" class="max-w-3xl mx-auto glass-card p-8 relative z-10">
-    <h2 class="text-white text-2xl font-bold mb-1">📝 Create Assignment / Quiz</h2>
-    <% if (error) { %><div class="bg-red-500/20 border border-red-500 text-red-300 px-4 py-2 rounded-lg mb-4 text-sm"><%= error %></div><% } %>
+<form id="aForm" action="/assignment/create" method="POST" enctype="multipart/form-data">
+  <div class="grid g-main">
+    <div class="col">
+      <div class="card reveal">
+        <div class="field"><label>Title</label><input class="input" name="title" placeholder="e.g. Chapter 3 quiz" required /></div>
+        <div class="field"><label>Instructions</label><textarea class="textarea" name="description" placeholder="Tell students what to do"></textarea></div>
+      </div>
+      <div id="qWrap" class="col"></div>
+      <button type="button" class="btn btn-soft" id="addQ"><i data-lucide="plus"></i> Add question</button>
+    </div>
 
-    <form action="/assignment/create" method="POST" enctype="multipart/form-data" class="space-y-4">
-      <input type="hidden" name="meetingId" value="" />
-      <input type="text" name="title" placeholder="Assignment Title" required class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3" />
-
-      <select name="type" class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3">
-        <option value="homework" class="text-black">Homework</option>
-        <option value="quiz" class="text-black">Quiz</option>
-        <option value="assignment" class="text-black">Assignment</option>
-        <option value="chapter_test" class="text-black">Chapter Test</option>
-        <option value="coding_challenge" class="text-black">Coding Challenge</option>
-      </select>
-
-      <textarea name="description" placeholder="Description" rows="2" class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3"></textarea>
-      <input type="datetime-local" name="dueDate" class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3" />
-
-      <div id="questionsContainer" class="space-y-5"></div>
-      <button type="button" onclick="addQuestion()" class="text-indigo-400 text-sm">+ Add Question</button>
-
-      <input type="hidden" name="questionsData" id="questionsData" />
-      <button type="submit" onclick="return buildQuestions()" class="btn-glow w-full text-white py-3 rounded-xl font-semibold">Publish Assignment</button>
-    </form>
+    <aside class="col">
+      <div class="card sticky reveal">
+        <div class="card-h"><h3>Settings</h3></div>
+        <div class="field"><label>Type</label>
+          <select class="select" name="type"><option value="quiz">Quiz</option><option value="homework">Homework</option><option value="assignment">Assignment</option><option value="chapter_test">Chapter test</option><option value="coding_challenge">Coding challenge</option></select></div>
+        <div class="field"><label>Send to</label>
+          <select class="select" name="meetingId"><option value="">All my students</option>
+            <% mts.forEach(m => { %><option value="<%= m._id %>" <%= String(m._id) === sel ? 'selected' : '' %>><%= m.title %> (<%= m.meetingCode %>)</option><% }) %></select></div>
+        <div class="field"><label>Due date (optional)</label><input class="input" type="datetime-local" name="dueDate" /></div>
+        <div class="item" style="justify-content:space-between"><span class="muted">Questions</span><b id="sumQ">0</b></div>
+        <div class="item" style="justify-content:space-between"><span class="muted">Total marks</span><b id="sumP">0</b></div>
+        <input type="hidden" name="questionsData" id="questionsData" />
+        <button class="btn btn-primary btn-block mt"><i data-lucide="send"></i> Publish assignment</button>
+      </div>
+    </aside>
   </div>
+</form>
 
 <script>
-gsap.from("#card", { opacity: 0, y: 30, duration: 0.7 });
-let qCount = 0;
+(function () {
+  var wrap = document.getElementById('qWrap'), uid = 0;
 
-function addQuestion() {
-  const i = qCount++;
-  const container = document.getElementById("questionsContainer");
-  const div = document.createElement("div");
-  div.className = "question-row bg-black/30 rounded-xl p-4 space-y-3";
-  div.dataset.index = i;
-  div.innerHTML = `
-    <div class="flex justify-between items-center">
-      <span class="text-indigo-300 text-sm font-semibold">Question ${i + 1}</span>
-      <button type="button" onclick="this.closest('.question-row').remove()" class="text-red-400 text-xs">Remove</button>
-    </div>
-    <input type="text" placeholder="Question text" class="q-text w-full bg-white/10 text-white text-sm rounded px-3 py-2" />
-    <div>
-      <label class="text-gray-400 text-xs">Question Image (optional)</label>
-      <input type="file" name="q${i}_image" accept="image/*" class="w-full bg-white/10 text-white text-xs rounded px-2 py-1.5 mt-1" />
-    </div>
-    <select class="q-type w-full bg-white/10 text-white text-sm rounded px-3 py-2" onchange="renderTypeFields(${i}, this.value)">
-      <option value="mcq" class="text-black">MCQ (4 options)</option>
-      <option value="true_false" class="text-black">True / False</option>
-      <option value="short_answer" class="text-black">Short Answer</option>
-      <option value="coding" class="text-black">Coding</option>
-    </select>
-    <div class="type-fields"></div>
-    <div>
-      <label class="text-gray-400 text-xs">Points</label>
-      <input type="number" value="1" min="1" class="q-points w-24 bg-white/10 text-white text-sm rounded px-2 py-1" />
-    </div>
-  `;
-  container.appendChild(div);
-  renderTypeFields(i, "mcq");
-}
-
-function renderTypeFields(i, type) {
-  const row = document.querySelector(`.question-row[data-index="${i}"]`);
-  const holder = row.querySelector(".type-fields");
-
-  if (type === "mcq") {
-    holder.innerHTML = `
-      <label class="text-gray-400 text-xs">4 Options — select the correct one</label>
-      <div class="space-y-2">
-        ${[0,1,2,3].map(o => `
-          <div class="flex items-center gap-2">
-            <input type="radio" name="q${i}_correct_radio" value="${o}" class="q-correct-radio" />
-            <input type="text" placeholder="Option ${o+1} text" class="q-option flex-1 bg-white/10 text-white text-sm rounded px-2 py-1.5" data-opt="${o}" />
-            <input type="file" name="q${i}_option${o}_image" accept="image/*" class="text-xs text-gray-400 w-32" title="Optional image for this option" />
-          </div>
-        `).join("")}
-      </div>`;
-  } else if (type === "true_false") {
-    holder.innerHTML = `
-      <label class="text-gray-400 text-xs">Correct Answer</label>
-      <div class="flex gap-4">
-        <label class="text-white text-sm flex items-center gap-1"><input type="radio" name="q${i}_tf" value="True" class="q-tf-radio" /> True</label>
-        <label class="text-white text-sm flex items-center gap-1"><input type="radio" name="q${i}_tf" value="False" class="q-tf-radio" /> False</label>
-      </div>`;
-  } else if (type === "short_answer") {
-    holder.innerHTML = `
-      <label class="text-gray-400 text-xs">Expected Answer (optional — for auto-grading)</label>
-      <input type="text" class="q-short-answer w-full bg-white/10 text-white text-sm rounded px-3 py-2" placeholder="Leave blank to grade manually" />`;
-  } else if (type === "coding") {
-    holder.innerHTML = `
-      <label class="text-gray-400 text-xs">Language</label>
-      <input type="text" class="q-code-lang w-full bg-white/10 text-white text-sm rounded px-3 py-2 mb-2" placeholder="e.g. Java, Python" />
-      <label class="text-gray-400 text-xs">Starter Code (shown to student)</label>
-      <textarea class="q-starter-code w-full bg-white/10 text-white font-mono text-xs rounded px-3 py-2" rows="4" placeholder="// starter code here"></textarea>
-      <p class="text-gray-500 text-xs mt-1">Coding answers are always graded manually by you.</p>`;
-  }
-}
-
-addQuestion();
-
-function buildQuestions() {
-  const questions = [...document.querySelectorAll(".question-row")].map((row) => {
-    const type = row.querySelector(".q-type").value;
-    const base = { questionText: row.querySelector(".q-text").value, type, points: Number(row.querySelector(".q-points").value) || 1 };
-    if (type === "mcq") {
-      const opts = [...row.querySelectorAll(".q-option")].map((o) => o.value);
-      const correctIdx = row.querySelector(".q-correct-radio:checked")?.value;
-      base.options = opts;
-      base.correctAnswer = correctIdx !== undefined ? opts[correctIdx] : "";
-    } else if (type === "true_false") {
-      base.options = ["True", "False"];
-      base.correctAnswer = row.querySelector(".q-tf-radio:checked")?.value || "";
-    } else if (type === "short_answer") {
-      base.correctAnswer = row.querySelector(".q-short-answer").value;
-    } else if (type === "coding") {
-      base.codeLanguage = row.querySelector(".q-code-lang").value;
-      base.starterCode = row.querySelector(".q-starter-code").value;
+  function fieldsFor(row, type) {
+    var id = row.dataset.id, h = '';
+    if (type === 'mcq') {
+      h = '<label class="muted small">Four options — tick the correct one</label>';
+      for (var o = 0; o < 4; o++) {
+        h += '<div class="row mt-s"><input type="radio" name="c' + id + '" class="q-correct" value="' + o + '" style="accent-color:var(--a1);width:18px;height:18px" />' +
+             '<input class="input sm q-opt" placeholder="Option ' + 'ABCD'[o] + '" />' +
+             '<input type="file" accept="image/*" class="input sm opt-img" data-o="' + o + '" style="max-width:150px" title="Optional option image" /></div>';
+      }
+    } else if (type === 'true_false') {
+      h = '<label class="muted small">Correct answer</label><div class="row mt-s">' +
+          '<label class="opt" style="margin:0"><input type="radio" name="c' + id + '" class="q-tf" value="True" /> True</label>' +
+          '<label class="opt" style="margin:0"><input type="radio" name="c' + id + '" class="q-tf" value="False" /> False</label></div>';
+    } else if (type === 'short_answer') {
+      h = '<div class="field mt-s"><label>Expected answer (optional — blank means you grade manually)</label><input class="input q-short" /></div>';
+    } else {
+      h = '<div class="form-grid mt-s"><div class="field"><label>Language</label><input class="input q-lang" placeholder="Java, Python…" /></div></div>' +
+          '<div class="field"><label>Starter code (shown to students)</label><textarea class="code-area q-starter" style="min-height:120px" spellcheck="false" placeholder="// starter code"></textarea></div>' +
+          '<p class="muted small">Coding answers are graded manually by you.</p>';
     }
-    return base;
+    row.querySelector('.tf').innerHTML = h;
+  }
+
+  function renumber() {
+    var rows = wrap.querySelectorAll('.q'), pts = 0;
+    rows.forEach(function (row, idx) {
+      row.querySelector('.qn').textContent = 'Question ' + (idx + 1);
+      row.querySelector('.q-img').name = 'q' + idx + '_image';
+      row.querySelectorAll('.opt-img').forEach(function (f) { f.name = 'q' + idx + '_option' + f.dataset.o + '_image'; });
+      pts += Number(row.querySelector('.q-points').value) || 0;
+    });
+    document.getElementById('sumQ').textContent = rows.length;
+    document.getElementById('sumP').textContent = pts;
+  }
+
+  function addQ() {
+    var id = uid++, row = document.createElement('section');
+    row.className = 'q'; row.dataset.id = id;
+    row.innerHTML =
+      '<div class="row between"><b class="qn"></b><button type="button" class="btn btn-danger btn-sm rm">Remove</button></div>' +
+      '<div class="field mt-s"><label>Question</label><input class="input q-text" placeholder="Type your question" /></div>' +
+      '<div class="form-grid"><div class="field"><label>Type</label><select class="select q-type"><option value="mcq">Multiple choice (4 options)</option><option value="true_false">True / False</option><option value="short_answer">Short answer</option><option value="coding">Coding</option></select></div>' +
+      '<div class="field"><label>Marks</label><input type="number" min="1" value="1" class="input q-points" /></div></div>' +
+      '<div class="field"><label>Question image (optional)</label><input type="file" accept="image/*" class="input q-img" /></div>' +
+      '<div class="tf"></div>';
+    wrap.appendChild(row);
+    fieldsFor(row, 'mcq');
+    row.querySelector('.q-type').addEventListener('change', function (e) { fieldsFor(row, e.target.value); renumber(); });
+    renumber();
+    if (window.lucide) lucide.createIcons();
+  }
+
+  document.getElementById('addQ').addEventListener('click', addQ);
+  wrap.addEventListener('click', function (e) { if (e.target.closest('.rm')) { e.target.closest('.q').remove(); renumber(); } });
+  wrap.addEventListener('input', function (e) { if (e.target.classList.contains('q-points')) renumber(); });
+  addQ();
+
+  document.getElementById('aForm').addEventListener('submit', function (e) {
+    renumber();
+    var rows = wrap.querySelectorAll('.q'), out = [];
+    if (!rows.length) { e.preventDefault(); toast('Add at least one question', 'error'); return; }
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i], type = r.querySelector('.q-type').value, text = r.querySelector('.q-text').value.trim();
+      var q = { questionText: text, type: type, points: Number(r.querySelector('.q-points').value) || 1 };
+      if (!text) { e.preventDefault(); toast('Question ' + (i + 1) + ' needs text', 'error'); return; }
+      if (type === 'mcq') {
+        var opts = Array.prototype.map.call(r.querySelectorAll('.q-opt'), function (o) { return o.value.trim(); });
+        var c = r.querySelector('.q-correct:checked');
+        if (opts.some(function (o) { return !o; })) { e.preventDefault(); toast('Question ' + (i + 1) + ': fill all 4 options', 'error'); return; }
+        if (!c) { e.preventDefault(); toast('Question ' + (i + 1) + ': choose the correct option', 'error'); return; }
+        q.options = opts; q.correctAnswer = opts[Number(c.value)];
+      } else if (type === 'true_false') {
+        var t = r.querySelector('.q-tf:checked');
+        if (!t) { e.preventDefault(); toast('Question ' + (i + 1) + ': choose True or False', 'error'); return; }
+        q.options = ['True', 'False']; q.correctAnswer = t.value;
+      } else if (type === 'short_answer') {
+        q.correctAnswer = r.querySelector('.q-short').value.trim();
+      } else {
+        q.codeLanguage = r.querySelector('.q-lang').value.trim(); q.starterCode = r.querySelector('.q-starter').value;
+      }
+      out.push(q);
+    }
+    document.getElementById('questionsData').value = JSON.stringify(out);
   });
-  document.getElementById("questionsData").value = JSON.stringify(questions);
-  return true;
-}
+})();
 </script>
-</body>
-</html>
+<%- include('../partials/shell-bottom') %>

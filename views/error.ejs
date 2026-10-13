@@ -1,24 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-role="participant" class="js">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <title>Error</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/responsive.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/theme.css" />
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oops · EduLive</title>
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
 </head>
-<body class="relative min-h-screen flex items-center justify-center px-6">
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
-
-  <div class="glass-card p-10 max-w-md w-full text-center relative z-10">
-    <div class="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-      <span class="text-3xl">⚠️</span>
+<body>
+  <div class="center-screen">
+    <div class="card center" style="max-width:440px;width:100%;padding:36px 28px">
+      <div class="ico" style="margin:0 auto 14px;width:60px;height:60px;font-size:28px">⚠️</div>
+      <h2 style="font-size:22px;font-weight:800;margin-bottom:8px">Something went wrong</h2>
+      <p class="muted" style="margin-bottom:22px"><%= typeof message !== 'undefined' ? message : 'Please try again.' %></p>
+      <a class="btn btn-primary" href="/">Go to home</a>
     </div>
-    <h2 class="text-white text-xl font-bold mb-2">Something Went Wrong</h2>
-    <p class="text-gray-400 mb-6"><%= message %></p>
-    <a href="/" class="btn-glow inline-block text-white px-6 py-3 rounded-xl font-semibold">Go Home</a>
   </div>
 </body>
 </html>

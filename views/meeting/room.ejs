@@ -1,146 +1,193 @@
-<!DOCTYPE html>
-<html lang="en">
+<%
+  const H = !!isHost;
+  const hostObj = meeting.host || {};
+  const pr = meeting.participantPermissions || {};
+  const ROOM = {
+    code: meeting.meetingCode, title: meeting.title, chapter: meeting.chapterName || '',
+    startedAt: meeting.startedAt ? new Date(meeting.startedAt).toISOString() : null,
+    isHost: H, hostName: hostObj.name || 'Teacher', hostId: String(hostObj._id || meeting.host),
+    me: { id: String(user._id), name: user.name, role: user.role },
+    home: user.role === 'admin' ? '/admin/dashboard' : user.role === 'host' ? '/host/dashboard' : '/participant/dashboard',
+    perms: { chat: pr.chatAllowed !== false, share: pr.screenShareAllowed !== false, locked: !!meeting.isLocked, waiting: !!meeting.waitingRoomEnabled }
+  };
+%><!DOCTYPE html>
+<html lang="en" class="js" data-role="<%= user.role %>">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <title><%= meeting.title %> — Live Class</title>
-    <link rel="stylesheet" href="/css/responsive.css" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="/socket.io/socket.io.js"></script>
-  <style>
-    body { margin:0; font-family: 'Segoe UI', sans-serif; }
-    .video-tile { transition: all 0.3s ease; }
-    .video-tile:hover { transform: scale(1.02); }
-    #chatBox::-webkit-scrollbar { width: 6px; }
-    #chatBox::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 10px; }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title><%= meeting.title %> · Live class · EduLive</title>
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="stylesheet" href="/css/room.css" />
+  <script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
 </head>
-<body class="bg-slate-950 h-screen overflow-hidden flex flex-col">
+<body>
+<div class="room">
 
-  <!-- TOP BAR -->
-  <div class="bg-slate-900 border-b border-white/10 px-6 py-3 flex items-center justify-between">
-    <div>
-      <h1 class="text-white font-bold"><%= meeting.title %></h1>
-      <p class="text-gray-400 text-xs">Chapter: <%= meeting.chapterName %> • Code: <%= meeting.meetingCode %></p>
-    </div>
-    <div class="flex items-center gap-3">
-      <span id="recordingBadge" class="hidden text-red-400 text-xs flex items-center gap-1">
-        <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> Recording
-      </span>
-      <% if (isHost) { %>
-        <form action="/meeting/<%= meeting.meetingCode %>/end" method="POST">
-          <button class="bg-red-600 hover:bg-red-500 text-white text-sm px-4 py-2 rounded-lg">End Meeting</button>
-        </form>
-      <% } %>
-    </div>
-  </div>
-
-  <div class="meeting-layout flex flex-1 overflow-hidden">
-    <!-- MAIN VIDEO AREA -->
-    <div class="flex-1 p-2 md:p-4 overflow-y-auto">
-      <div id="videoGrid" class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
-        <div class="video-tile bg-slate-800 rounded-xl overflow-hidden relative aspect-video">
-          <video id="localVideo" autoplay muted playsinline class="w-full h-full object-cover"></video>
-          <span class="absolute bottom-1.5 left-1.5 md:bottom-2 md:left-2 bg-black/50 text-white text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded">
-            <%= user.name %> (You) <%= isHost ? "👑" : "" %>
-          </span>
+  <!-- ===== top bar ===== -->
+  <header class="r-top">
+    <span class="logo" style="width:34px;height:34px;border-radius:11px">E</span>
+    <div class="r-title"><b><%= meeting.title %></b><small><%= meeting.chapterName || 'Live class' %> · <%= hostObj.name || 'Teacher' %></small></div>
+    <div class="sp"></div>
+    <span class="pill rec" id="recBadge" hidden><span class="live-dot" style="background:#fff"></span> Recording</span>
+    <span class="pill live"><span class="live-dot"></span> LIVE <span id="timer" class="mono">0:00</span></span>
+    <span class="pill hide-m"><i data-lucide="users" style="width:14px;height:14px"></i> <span id="countPill">1</span></span>
+    <button class="pill hide-m" id="copyBtn" title="Copy invite link"><i data-lucide="copy" style="width:14px;height:14px"></i> <span class="mono"><%= meeting.meetingCode %></span></button>
+    <% if (H) { %>
+      <div class="rel">
+        <button class="pill" id="ctrlBtn"><i data-lucide="settings-2" style="width:14px;height:14px"></i><span class="hide-m">Room controls</span></button>
+        <div class="pop" id="ctrlPop" hidden>
+          <label class="sw"><span>Students can chat</span><input type="checkbox" id="swChat" /></label>
+          <label class="sw"><span>Students can share screen</span><input type="checkbox" id="swShare" /></label>
+          <label class="sw"><span>Lock meeting</span><input type="checkbox" id="swLock" /></label>
+          <label class="sw"><span>Waiting room</span><input type="checkbox" id="swWait" /></label>
         </div>
-        <!-- Remote videos injected here dynamically -->
+      </div>
+      <button class="btn btn-danger btn-sm" id="endBtn"><i data-lucide="power"></i><span class="hide-m">End class</span></button>
+    <% } %>
+  </header>
+
+  <div class="r-main">
+    <!-- ===== stage ===== -->
+    <section class="r-stage">
+      <div class="ann" id="annBanner" hidden></div>
+      <div class="stage" id="stage" data-n="0"></div>
+
+      <div class="board" id="board" hidden>
+        <div class="b-tools">
+          <b>Whiteboard</b><span class="sp"></span>
+          <% if (H) { %>
+            <span class="swatch on" data-c="#5eead4" style="background:#5eead4"></span>
+            <span class="swatch" data-c="#ffffff" style="background:#fff"></span>
+            <span class="swatch" data-c="#fbbf24" style="background:#fbbf24"></span>
+            <span class="swatch" data-c="#fb7185" style="background:#fb7185"></span>
+            <span class="swatch" data-c="#60a5fa" style="background:#60a5fa"></span>
+            <button class="btn btn-ghost btn-sm" id="eraser"><i data-lucide="eraser"></i> Eraser</button>
+            <button class="btn btn-ghost btn-sm" id="bclear"><i data-lucide="trash-2"></i> Clear</button>
+          <% } else { %><span class="muted small">Teacher is drawing — view only</span><% } %>
+        </div>
+        <div class="b-wrap"><canvas id="bcanvas" width="1280" height="720"></canvas></div>
       </div>
 
-      <!-- WHITEBOARD (toggled) -->
-      <div id="whiteboardPanel" class="hidden mt-4 bg-white rounded-xl p-2">
-        <canvas id="whiteboard" width="800" height="400" class="border rounded-lg w-full cursor-crosshair"></canvas>
-        <button id="clearBoard" class="mt-2 bg-red-500 text-white px-3 py-1 rounded text-sm">Clear Board</button>
-      </div>
-    </div>
+      <div class="reactions" id="reactions"></div>
+    </section>
 
-    <!-- SIDE PANEL → becomes bottom sheet on mobile -->
-    <button id="panelToggleBtn" class="lg:hidden fixed bottom-24 right-4 z-30 bg-indigo-600 text-white p-3.5 rounded-full shadow-xl">
-      <i data-lucide="message-circle" class="w-5 h-5"></i>
-    </button>
-
-    <div id="meetingSidePanel" class="meeting-side-panel w-full lg:w-80 bg-slate-900 border-l border-white/10 flex flex-col">
-      <div class="panel-drag-handle"></div>
-      <div class="flex border-b border-white/10">
-        <button class="tab-btn flex-1 text-white text-sm py-3" data-tab="chat">💬 Chat</button>
-        <button class="tab-btn flex-1 text-gray-400 text-sm py-3" data-tab="participants">👥 People</button>
-        <button class="tab-btn flex-1 text-gray-400 text-sm py-3" data-tab="questions">📋 Q&A</button>
-        <button id="panelCloseBtn" class="lg:hidden text-gray-400 px-3"><i data-lucide="x" class="w-4 h-4"></i></button>
+    <!-- ===== side panel ===== -->
+    <aside class="r-panel" id="panel">
+      <div class="tabs-r">
+        <button class="on" data-tab="chat"><i data-lucide="message-square" style="width:16px;height:16px"></i>Chat<span class="bd" id="bd-chat">0</span></button>
+        <button data-tab="people"><i data-lucide="users" style="width:16px;height:16px"></i>People<span class="bd" id="bd-people">0</span></button>
+        <button data-tab="qa"><i data-lucide="help-circle" style="width:16px;height:16px"></i>Q&amp;A<span class="bd" id="bd-qa">0</span></button>
+        <button data-tab="material"><i data-lucide="book-open" style="width:16px;height:16px"></i>Notes<span class="bd" id="bd-material">0</span></button>
+        <button class="only-m" id="panelClose" style="flex:none;width:40px"><i data-lucide="x"></i></button>
       </div>
 
-      <!-- CHAT TAB -->
-      <div id="tab-chat" class="tab-content flex-1 flex flex-col p-3 overflow-hidden">
-        <div id="chatBox" class="flex-1 overflow-y-auto space-y-2 mb-2"></div>
-        <form id="chatForm" class="flex gap-2">
-          <input id="chatInput" type="text" placeholder="Type a message..."
-            class="flex-1 bg-white/10 text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none" />
-          <button class="bg-indigo-600 text-white px-4 rounded-lg">➤</button>
+      <!-- CHAT -->
+      <div class="pane on" id="pane-chat">
+        <div class="threads" id="threads"></div>
+        <div class="msgs" id="msgs"></div>
+        <div class="typing" id="typing"></div>
+        <div class="reply-bar" id="replyBar" hidden><i data-lucide="reply" style="width:14px;height:14px"></i><span id="replyText"></span><button id="replyCancel" aria-label="Cancel reply"><i data-lucide="x" style="width:14px;height:14px"></i></button></div>
+        <div class="emoji-row" id="emojiRow" hidden>
+          <% ['😊','😂','👍','🙏','❤️','🎉','🤔','👏'].forEach(e => { %><button type="button" data-e="<%= e %>"><%= e %></button><% }) %>
+        </div>
+        <form class="composer" id="chatForm" autocomplete="off">
+          <button type="button" class="round" id="emojiBtn" aria-label="Emoji">😊</button>
+          <input class="input" id="chatInput" placeholder="Type a message…" maxlength="1000" />
+          <button class="round send" aria-label="Send"><i data-lucide="send" style="width:17px;height:17px"></i></button>
         </form>
       </div>
 
-      <!-- PARTICIPANTS TAB -->
-      <div id="tab-participants" class="tab-content hidden flex-1 p-3 overflow-y-auto">
-        <div id="participantsList" class="space-y-2 text-white text-sm"></div>
+      <!-- PEOPLE -->
+      <div class="pane" id="pane-people">
+        <div class="pane-scroll">
+          <div class="wait-box" id="waitBox" hidden></div>
+          <div class="sec-t">In this class · <span id="peopleCount">0</span></div>
+          <div id="peopleList"></div>
+        </div>
       </div>
 
-      <!-- QUESTIONS TAB -->
-      <div id="tab-questions" class="tab-content hidden flex-1 p-3 overflow-y-auto">
-        <% if (isHost) { %>
-          <form id="questionForm" class="space-y-2 mb-4">
-            <input id="qText" type="text" placeholder="Question text" class="w-full bg-white/10 text-white text-sm rounded-lg px-3 py-2" />
-            <input id="qOptions" type="text" placeholder="Options (comma separated)" class="w-full bg-white/10 text-white text-sm rounded-lg px-3 py-2" />
-            <button class="w-full bg-purple-600 text-white py-2 rounded-lg text-sm">Send Question</button>
-          </form>
-        <% } %>
-        <div id="questionsList" class="space-y-3 text-white text-sm"></div>
+      <!-- Q&A -->
+      <div class="pane" id="pane-qa">
+        <div class="pane-scroll">
+          <% if (H) { %>
+            <form id="qForm" class="qcard">
+              <b>Ask the class a question</b>
+              <div class="field mt-s"><input class="input" id="qText" placeholder="Type your question" required /></div>
+              <div class="field"><select class="select" id="qType"><option value="mcq">Multiple choice (4 options)</option><option value="tf">True / False</option></select></div>
+              <div id="qOpts">
+                <% ['A','B','C','D'].forEach(l => { %><div class="field"><input class="input q-opt" placeholder="Option <%= l %>" /></div><% }) %>
+              </div>
+              <div class="field"><label>Correct answer (optional — shows students instant feedback)</label><select class="select" id="qCorrect"><option value="">Don't reveal</option></select></div>
+              <button class="btn btn-primary btn-block"><i data-lucide="send"></i> Send to everyone</button>
+            </form>
+          <% } %>
+          <div id="qList"></div>
+        </div>
       </div>
+
+      <!-- MATERIAL -->
+      <div class="pane" id="pane-material">
+        <div class="pane-scroll">
+          <% if (H) { %><a class="btn btn-soft btn-block mb" target="_blank" href="/chapter/create/<%= meeting.meetingCode %>"><i data-lucide="upload"></i> Add chapter material</a><% } %>
+          <div id="matList"><div class="empty-s">Loading…</div></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ===== control dock ===== -->
+  <div class="dock">
+    <div class="dock-in rel">
+      <div class="react-pop" id="reactPop" hidden>
+        <% ['👍','❤️','😂','🎉','😮','👏','🔥'].forEach(e => { %><button type="button" data-e="<%= e %>"><%= e %></button><% }) %>
+      </div>
+      <button class="dk" id="micBtn" title="Microphone"><span class="ic"><i data-lucide="mic"></i></span></button>
+      <button class="dk" id="camBtn" title="Camera"><span class="ic"><i data-lucide="video"></i></span></button>
+      <button class="dk" id="screenBtn" title="Share screen"><span class="ic"><i data-lucide="monitor-up"></i></span></button>
+      <button class="dk" id="handBtn" title="Raise hand"><span class="ic"><i data-lucide="hand"></i></span></button>
+      <button class="dk" id="reactBtn" title="Reactions"><span class="ic"><i data-lucide="smile"></i></span></button>
+      <button class="dk" id="boardBtn" title="Whiteboard"><span class="ic"><i data-lucide="pencil-line"></i></span></button>
+      <% if (H) { %>
+        <button class="dk" id="annBtn" title="Announcement"><span class="ic"><i data-lucide="megaphone"></i></span></button>
+        <button class="dk" id="recBtn" title="Record"><span class="ic"><i data-lucide="circle-dot"></i></span></button>
+      <% } %>
+      <button class="dk only-m" id="panelOpen" title="Chat"><span class="ic"><i data-lucide="message-square"></i></span><span class="bd" id="bd-open">0</span></button>
+      <button class="dk leave" id="leaveBtn"><i data-lucide="phone-off" style="width:18px;height:18px"></i><span class="hide-m">Leave</span></button>
     </div>
   </div>
+</div>
 
-  <!-- CONTROL BAR -->
-  <div class="meeting-controls bg-slate-900 border-t border-white/10 py-3 flex items-center justify-center gap-3">
-    <button id="micBtn" class="control-btn bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full" title="Mic"><i data-lucide="mic"></i></button>
-    <button id="camBtn" class="control-btn bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full" title="Camera"><i data-lucide="video"></i></button>
-    <button id="screenBtn" class="control-btn bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full" title="Share Screen"><i data-lucide="monitor"></i></button>
-    <button id="handBtn" class="control-btn bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full" title="Raise Hand"><i data-lucide="hand"></i></button>
-    <button id="reactionBtn" class="control-btn bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full" title="Reaction"><i data-lucide="smile"></i></button>
-    <button id="whiteboardBtn" class="control-btn bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full" title="Whiteboard"><i data-lucide="pencil"></i></button>
-    <% if (isHost) { %>
-      <button id="recordBtn" class="control-btn bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-full" title="Record"><i data-lucide="circle-dot"></i></button>
-    <% } %>
-    <a href="/meeting/<%= meeting.meetingCode %>/join" class="control-btn bg-red-600 hover:bg-red-500 text-white p-3 rounded-full" title="Leave"><i data-lucide="phone-off"></i></a>
-  </div>
+<!-- question popup (students) -->
+<div class="modal" id="qModal"><div class="mbox">
+  <span class="badge b-accent">📋 Live question</span>
+  <h3 id="qmText" style="font-size:20px;margin:12px 0 6px"></h3>
+  <div id="qmOpts"></div>
+  <div id="qmFeed" class="mt-s strong"></div>
+  <button class="btn btn-ghost btn-block mt" id="qmClose">Close</button>
+</div></div>
 
-  <script>
-    window.MEETING_DATA = {
-      meetingCode: "<%= meeting.meetingCode %>",
-      userId: "<%= user._id %>",
-      userName: "<%= user.name %>",
-      role: "<%= user.role %>",
-      isHost: <%= isHost %>
-    };
-  </script>
-  <script>
-    (function() {
-      const panel = document.getElementById("meetingSidePanel");
-      const toggleBtn = document.getElementById("panelToggleBtn");
-      const closeBtn = document.getElementById("panelCloseBtn");
+<!-- announcement composer (teacher) -->
+<div class="modal" id="annModal"><div class="mbox">
+  <h3 style="font-size:20px;margin-bottom:12px">📢 Announce to the class</h3>
+  <textarea class="textarea" id="annText" maxlength="400" placeholder="e.g. Quiz starts in 5 minutes…"></textarea>
+  <div class="row mt"><button class="btn btn-primary grow" id="annSend">Send announcement</button><button class="btn btn-ghost" id="annCancel">Cancel</button></div>
+</div></div>
 
-      toggleBtn?.addEventListener("click", () => panel.classList.add("panel-open"));
-      closeBtn?.addEventListener("click", () => panel.classList.remove("panel-open"));
+<!-- ended / removed / error -->
+<div class="end-screen" id="endScreen"><div class="card center" style="max-width:440px;width:100%;padding:36px 28px">
+  <div class="ico" style="margin:0 auto 14px;width:62px;height:62px;font-size:28px" id="endIcon">👋</div>
+  <h2 id="endTitle" style="font-size:24px;font-weight:800">Class ended</h2>
+  <p class="muted mt-s" id="endMsg"></p>
+  <a class="btn btn-primary mt" id="endBtnBack" href="/">Back to dashboard</a>
+</div></div>
 
-      // Swipe-down-to-close on the drag handle (mobile touch gesture)
-      let startY = 0;
-      const handle = panel.querySelector(".panel-drag-handle");
-      handle?.addEventListener("touchstart", (e) => { startY = e.touches[0].clientY; });
-      handle?.addEventListener("touchmove", (e) => {
-        const diff = e.touches[0].clientY - startY;
-        if (diff > 80) panel.classList.remove("panel-open");
-      });
-    })();
-  </script>
-  <script src="/js/webrtc-client.js"></script>
-  <script src="/js/meeting-room.js"></script>
+<div id="toasts"></div>
+
+<script>window.ROOM = <%- JSON.stringify(ROOM).replace(/</g, '\\u003c') %>;</script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/webrtc-client.js"></script>
+<script src="/js/meeting-room.js"></script>
 </body>
 </html>

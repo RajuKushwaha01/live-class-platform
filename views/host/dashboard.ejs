@@ -1,113 +1,97 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <title>Host Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/theme.css" />
-  <link rel="stylesheet" href="/css/animations.css" />
-  <link rel="stylesheet" href="/css/responsive.css" />
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-</head>
-<body class="relative min-h-screen">
-
-  <!-- TOP NOTIFICATION BELL -->
-  <div class="fixed top-4 right-6 z-30">
-  <!-- ✅ FIXED -->
-<%- include('../partials/notification-bell', { userId: user._id }) %>
-<%- include('../partials/live-meeting-alert') %>
-</div>
-
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
-
-  <%- include('../partials/sidebar', { role: 'host', active: 'dashboard' }) %>
-
-  <main class="main-content ml-64 p-4 md:p-8 relative z-10 page-fade-in">
-    <h1 class="text-white text-3xl font-bold mb-1">Welcome back, <%= user.name %> 👋</h1>
-    <p class="text-gray-400 mb-8">Here's what's happening with your classes today.</p>
-
-    <!-- STAT CARDS -->
-    <div class="stats-grid grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
-      <div class="stat-card glass-card card-3d p-5">
-        <i data-lucide="video" class="text-indigo-300 mb-2"></i>
-        <p class="text-3xl font-bold text-white count-up" data-target="<%= meetings.length %>">0</p>
-        <p class="text-gray-400 text-sm">Total Meetings</p>
-      </div>
-      <div class="stat-card glass-card card-3d p-5">
-        <i data-lucide="users" class="text-purple-300 mb-2"></i>
-        <p class="text-3xl font-bold text-white count-up" data-target="156">0</p>
-        <p class="text-gray-400 text-sm">Total Students</p>
-      </div>
-      <div class="stat-card glass-card card-3d p-5">
-        <i data-lucide="clipboard-check" class="text-pink-300 mb-2"></i>
-        <p class="text-3xl font-bold text-white count-up" data-target="24">0</p>
-        <p class="text-gray-400 text-sm">Assignments</p>
-      </div>
-      <div class="stat-card glass-card card-3d p-5">
-        <i data-lucide="trending-up" class="text-green-300 mb-2"></i>
-        <p class="text-3xl font-bold text-white count-up" data-target="87">0</p>
-        <p class="text-gray-400 text-sm">Avg. Score %</p>
-      </div>
+<%- include('../partials/shell-top', { role: 'host', active: 'dashboard', title: 'Dashboard' }) %>
+<%
+  const first = (user.name || 'Teacher').split(' ')[0];
+  const hr = new Date().getHours();
+  const greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+  const J = v => JSON.stringify(v).replace(/</g, '\\u003c');
+  const liveNow = meetings.find(m => m.status === 'live');
+  const cards = [
+    ['video', 'Meetings', stats.meetings, ''],
+    ['users', 'Students', stats.students, ''],
+    ['clipboard-check', 'Assignments', stats.assignments, ''],
+    ['trending-up', 'Average score', stats.avgScore, '%']
+  ];
+  const medals = ['🥇', '🥈', '🥉'];
+%>
+<section class="hero on-grad reveal">
+  <div class="grow">
+    <span class="hero-tag">Teacher workspace</span>
+    <h2><%= greet %>, <%= first %> 👋</h2>
+    <p><% if (stats.pending) { %><b><%= stats.pending %></b> submission<%= stats.pending > 1 ? 's' : '' %> waiting for your marks.<% } else { %>Everything is graded. Ready for your next class?<% } %><% if (liveNow) { %> <b><%= liveNow.title %></b> is live now.<% } %></p>
+    <div class="row wrap mt-s">
+      <a class="btn btn-white" href="/meeting/create"><i data-lucide="plus"></i> New meeting</a>
+      <a class="btn btn-ghost" href="/assignment/create"><i data-lucide="file-plus"></i> New assignment</a>
+      <% if (liveNow) { %><a class="btn btn-ghost" href="/meeting/room/<%= liveNow.meetingCode %>"><span class="live-dot"></span> Return to live class</a><% } %>
     </div>
+  </div>
+</section>
 
-    <div class="grid md:grid-cols-3 gap-6">
-      <!-- UPCOMING MEETINGS -->
-      <div class="md:col-span-2 glass-card p-6">
-        <h3 class="text-white font-semibold text-lg mb-4">📅 Upcoming Meetings</h3>
-        <div class="space-y-3">
-          <% meetings.slice(0,5).forEach(m => { %>
-            <div class="flex items-center justify-between bg-white/5 rounded-xl p-4 hover:bg-white/10 transition">
-              <div>
-                <p class="text-white font-medium"><%= m.title %></p>
-                <p class="text-gray-400 text-xs"><%= m.chapterName || '' %> • <%= m.status %></p>
-              </div>
-              <a href="/meeting/room/<%= m.meetingCode %>" class="btn-glow text-white text-xs px-4 py-2 rounded-lg">Enter →</a>
-            </div>
-          <% }) %>
-          <% if (meetings.length === 0) { %>
-            <p class="text-gray-500 text-sm text-center py-6">No meetings yet. Create one!</p>
-          <% } %>
+<section class="grid g4 mt">
+  <% cards.forEach((c, i) => { %>
+    <div class="card stat reveal" style="transition-delay:<%= i * 70 %>ms"><span class="ico"><i data-lucide="<%= c[0] %>"></i></span><b><span data-count="<%= c[2] %>">0</span><%= c[3] %></b><span class="muted small"><%= c[1] %></span></div>
+  <% }) %>
+</section>
+
+<section class="grid g-main mt">
+  <div class="col">
+    <div class="card reveal">
+      <div class="card-h"><h3>Recent meetings</h3><a class="link" href="/host/meetings">View all →</a></div>
+      <% meetings.forEach(m => { %>
+        <div class="item">
+          <span class="ico"><i data-lucide="<%= m.status === 'live' ? 'radio' : 'video' %>"></i></span>
+          <div class="grow"><b class="truncate" style="display:block"><%= m.title %></b><span class="muted small mono"><%= m.meetingCode %> · <%= m.participants.length %> joined</span></div>
+          <% if (m.status === 'live') { %><span class="badge b-red"><span class="live-dot"></span>Live</span><% } else { %><span class="badge"><%= m.status %></span><% } %>
+          <% if (m.status !== 'ended') { %><a class="btn btn-soft btn-sm" href="/meeting/room/<%= m.meetingCode %>">Enter</a><% } %>
         </div>
-        <a href="/meeting/create" class="btn-glow inline-block mt-4 text-white text-sm px-5 py-2.5 rounded-lg">+ Create New Meeting</a>
-      </div>
-
-      <!-- MINI CHART -->
-      <div class="glass-card p-6">
-        <h3 class="text-white font-semibold text-lg mb-4">📊 Weekly Activity</h3>
-        <canvas id="activityChart"></canvas>
-      </div>
+      <% }) %>
+      <% if (!meetings.length) { %><div class="empty"><div class="ico"><i data-lucide="video"></i></div>Create your first meeting to get started.<div class="mt"><a class="btn btn-primary" href="/meeting/create">Create meeting</a></div></div><% } %>
     </div>
-  </main>
 
-  <script src="/js/page-animations.js"></script>
-  <script>
-    lucide.createIcons();
+    <div class="card reveal">
+      <div class="card-h"><h3>Submissions this week</h3><span class="muted small">Student activity</span></div>
+      <div class="chart"><canvas id="actChart"></canvas></div>
+    </div>
+  </div>
 
-    new Chart(document.getElementById("activityChart"), {
-      type: "line",
-      data: {
-        labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-        datasets: [{
-          label: "Students Active",
-          data: [12, 19, 14, 25, 22, 30, 18],
-          borderColor: "#818cf8",
-          backgroundColor: "rgba(129,140,248,0.15)",
-          fill: true,
-          tension: 0.4,
-        }],
-      },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(255,255,255,0.05)" } },
-          x: { ticks: { color: "#94a3b8" }, grid: { display: false } },
-        },
-      },
-    });
-  </script>
-</body>
-</html>
+  <div class="col">
+    <div class="card reveal">
+      <div class="card-h"><h3>Needs grading</h3><a class="link" href="/host/assignments">All →</a></div>
+      <% pendingList.forEach(p => { %>
+        <a class="item" href="/assignment/grade/<%= p.id %>">
+          <span class="avatar" style="width:34px;height:34px;border-radius:10px"><%= (p.name || '?').slice(0, 1).toUpperCase() %></span>
+          <div class="grow"><b class="truncate" style="display:block"><%= p.name %></b><span class="muted small truncate" style="display:block"><%= p.title %></span></div>
+          <i data-lucide="chevron-right"></i>
+        </a>
+      <% }) %>
+      <% if (!pendingList.length) { %><div class="empty">✅ All caught up</div><% } %>
+    </div>
+
+    <div class="card reveal">
+      <div class="card-h"><h3>Score distribution</h3></div>
+      <% if (dist.reduce((a, b) => a + b, 0)) { %><div class="chart" style="height:200px"><canvas id="distChart"></canvas></div>
+      <% } else { %><div class="empty-s">No graded submissions yet</div><% } %>
+    </div>
+
+    <div class="card reveal">
+      <div class="card-h"><h3>Top students</h3></div>
+      <% top.forEach((t, i) => { %>
+        <div class="item"><span style="font-size:20px"><%= medals[i] || '#' + (i + 1) %></span><div class="grow"><b><%= t.name %></b></div><span class="badge b-green"><%= t.avg %>%</span></div>
+      <% }) %>
+      <% if (!top.length) { %><div class="empty-s">Rankings appear after grading</div><% } %>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  if (!window.Chart) return;
+  var a1 = cssVar('--a1'), a2 = cssVar('--a2');
+  var act = document.getElementById('actChart');
+  if (act) new Chart(act, { type: 'bar', data: { labels: <%- J(labels) %>, datasets: [{ data: <%- J(activity) %>, backgroundColor: a1, borderRadius: 8, maxBarThickness: 26 }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } } } });
+  var d = document.getElementById('distChart');
+  if (d) new Chart(d, { type: 'doughnut', data: { labels: ['< 40%', '40–59%', '60–79%', '80%+'], datasets: [{ data: <%- J(dist) %>, backgroundColor: ['#fb7185', '#fbbf24', a2, a1], borderWidth: 0 }] },
+    options: { maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } } } });
+})();
+</script>
+<%- include('../partials/shell-bottom') %>

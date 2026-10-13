@@ -1,55 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <title>My Meetings</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/theme.css" />
-  <link rel="stylesheet" href="/css/animations.css" />
-  <link rel="stylesheet" href="/css/responsive.css" />
-  <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-<body class="relative min-h-screen">
-  <!-- TOP NOTIFICATION BELL -->
-  <div class="fixed top-4 right-6 z-30">
- <!-- ✅ FIXED -->
-<%- include('../partials/notification-bell', { userId: user._id }) %>
-<%- include('../partials/live-meeting-alert') %>
+<%- include('../partials/shell-top', { role: 'host', active: 'meetings', title: 'Meetings' }) %>
+<div class="page-head">
+  <div><span class="badge b-accent">Classes</span><h2>My meetings</h2><p class="muted">Create, share, invite and manage every class.</p></div>
+  <a class="btn btn-primary" href="/meeting/create"><i data-lucide="plus"></i> New meeting</a>
 </div>
 
-  <div class="blob blob-1"></div>
-  <%- include('../partials/sidebar', { role: 'host', active: 'meetings' }) %>
+<div class="toolbar">
+  <div class="searchbox"><i data-lucide="search"></i><input class="input" data-search-for="#hmList" placeholder="Search by title, chapter or code…" /></div>
+  <div class="tabs" data-filter-for="#hmList"><button class="on" data-f="all">All</button><button data-f="live">Live</button><button data-f="scheduled">Scheduled</button><button data-f="ended">Ended</button></div>
+</div>
 
-  <main class="main-content ml-64 p-4 md:p-8 relative z-10 page-fade-in">
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-white text-3xl font-bold">📹 My Meetings</h1>
-      <a href="/meeting/create" class="btn-glow text-white text-sm px-5 py-2.5 rounded-lg">+ New Meeting</a>
-    </div>
-
-    <div class="grid gap-4">
-      <% meetings.forEach(m => { %>
-        <div class="glass-card card-3d p-5 flex items-center justify-between">
-          <div>
-            <div class="flex items-center gap-2 mb-1">
-              <h3 class="text-white font-semibold"><%= m.title %></h3>
-              <span class="text-xs px-2 py-0.5 rounded-full
-                <%= m.status === 'live' ? 'bg-red-500/20 text-red-400' : m.status === 'ended' ? 'bg-gray-500/20 text-gray-400' : 'bg-yellow-500/20 text-yellow-400' %>">
-                <%= m.status %>
-              </span>
-            </div>
-            <p class="text-gray-400 text-sm"><%= m.chapterName || '' %> • Code: <%= m.meetingCode %> • <%= m.participants.length %> joined</p>
-          </div>
-          <div class="flex gap-2">
-            <a href="/invite/<%= m.meetingCode %>" class="bg-white/10 hover:bg-white/20 text-white text-xs px-4 py-2 rounded-lg transition">Invite</a>
-            <a href="/meeting/room/<%= m.meetingCode %>" class="btn-glow text-white text-xs px-4 py-2 rounded-lg">Enter →</a>
-          </div>
-        </div>
-      <% }) %>
-      <% if (meetings.length === 0) { %>
-        <p class="text-gray-500 text-center py-10">No meetings yet.</p>
-      <% } %>
-    </div>
-  </main>
-  <script>lucide.createIcons();</script>
-</body>
-</html>
+<div class="grid g-auto" id="hmList" data-list>
+  <% meetings.forEach(m => { const when = m.scheduledDate ? new Date(m.scheduledDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : 'Anytime'; %>
+    <article class="card hover" data-item data-status="<%= m.status %>">
+      <div class="row between">
+        <span class="ico"><i data-lucide="<%= m.status === 'live' ? 'radio' : 'video' %>"></i></span>
+        <% if (m.status === 'live') { %><span class="badge b-red"><span class="live-dot"></span>Live</span><% } else if (m.status === 'ended') { %><span class="badge">Ended</span><% } else { %><span class="badge b-amber">Scheduled</span><% } %>
+      </div>
+      <h3 class="mt-s truncate"><%= m.title %></h3>
+      <p class="muted small truncate"><%= m.chapterName || 'No chapter' %> · <%= when %><%= m.startTime ? ' · ' + m.startTime : '' %></p>
+      <div class="row between mt-s item" style="padding:8px 10px">
+        <span class="mono"><%= m.meetingCode %></span>
+        <button class="btn btn-soft btn-sm" data-copy="/meeting/<%= m.meetingCode %>"><i data-lucide="copy"></i> Copy link</button>
+      </div>
+      <p class="muted small mt-s"><i data-lucide="users" style="width:14px;height:14px"></i> <%= m.participants.length %> joined<%= m.meetingPassword ? ' · 🔒 password' : '' %></p>
+      <div class="row wrap gap-s mt">
+        <% if (m.status !== 'ended') { %><a class="btn btn-primary btn-sm" href="/meeting/room/<%= m.meetingCode %>">Enter</a><a class="btn btn-ghost btn-sm" href="/invite/<%= m.meetingCode %>">Invite</a><a class="btn btn-ghost btn-sm" href="/chapter/create/<%= m.meetingCode %>">Material</a><% } %>
+        <form action="/meeting/<%= m.meetingCode %>/delete" method="POST" data-confirm="Delete this meeting and its materials?"><button class="btn btn-danger btn-sm"><i data-lucide="trash-2"></i></button></form>
+      </div>
+    </article>
+  <% }) %>
+</div>
+<div class="empty" data-empty-for="#hmList" <%= meetings.length ? 'hidden' : '' %>><div class="ico"><i data-lucide="video-off"></i></div>No meetings found.</div>
+<%- include('../partials/shell-bottom') %>

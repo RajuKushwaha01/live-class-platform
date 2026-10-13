@@ -1,50 +1,37 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <title>My Meetings</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/responsive.css" />
-  <link rel="stylesheet" href="/css/theme.css" />
-  <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-<body class="relative min-h-screen">
+<%- include('../partials/shell-top', { role: 'participant', active: 'meetings', title: 'Classes' }) %>
+<div class="page-head"><div><span class="badge b-accent">Classes</span><h2>My classes</h2><p class="muted">Join live sessions or revisit past ones.</p></div></div>
 
-  <!-- TOP NOTIFICATION BELL -->
-  <div class="fixed top-4 right-6 z-30">
-  <!-- ✅ FIXED -->
-<%- include('../partials/notification-bell', { userId: user._id }) %>
-<%- include('../partials/live-meeting-alert') %>
+<div class="toolbar">
+  <div class="searchbox"><i data-lucide="search"></i><input class="input" data-search-for="#mList" placeholder="Search classes or teachers…" /></div>
+  <div class="tabs" data-filter-for="#mList">
+    <button class="on" data-f="all">All</button><button data-f="live">Live</button><button data-f="scheduled">Upcoming</button><button data-f="ended">Ended</button>
+  </div>
 </div>
 
-  <%- include('../partials/sidebar', { role: 'participant', active: 'meetings' }) %>
-
-  <main class="ml-64 p-8 relative z-10">
-    <h1 class="text-white text-3xl font-bold mb-6">📹 My Meetings</h1>
-
-    <div class="grid gap-4">
-      <% meetings.forEach(m => { %>
-        <div class="glass-card card-3d p-5 flex items-center justify-between">
-          <div>
-            <div class="flex items-center gap-2 mb-1">
-              <h3 class="text-white font-semibold"><%= m.title %></h3>
-              <span class="text-xs px-2 py-0.5 rounded-full
-                <%= m.status === 'live' ? 'bg-red-500/20 text-red-400' : m.status === 'ended' ? 'bg-gray-500/20 text-gray-400' : 'bg-yellow-500/20 text-yellow-400' %>">
-                <%= m.status %>
-              </span>
-            </div>
-            <p class="text-gray-400 text-sm">Host: <%= m.host.name %> • <%= m.chapterName || '' %></p>
-          </div>
-          <a href="/meeting/<%= m.meetingCode %>" class="btn-glow text-white text-xs px-4 py-2 rounded-lg">
-            <%= m.status === 'live' ? 'Join Now →' : 'View →' %>
-          </a>
-        </div>
-      <% }) %>
-      <% if (meetings.length === 0) { %>
-        <p class="text-gray-500 text-center py-10">No meetings yet.</p>
-      <% } %>
-    </div>
-  </main>
-  <script>lucide.createIcons();</script>
-</body>
-</html>
+<div class="grid g-auto" id="mList" data-list>
+  <% meetings.forEach(m => {
+    const when = m.scheduledDate ? new Date(m.scheduledDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Anytime';
+  %>
+    <article class="card hover" data-item data-status="<%= m.status %>">
+      <div class="row between">
+        <span class="ico"><i data-lucide="<%= m.status === 'live' ? 'radio' : 'video' %>"></i></span>
+        <% if (m.status === 'live') { %><span class="badge b-red"><span class="live-dot"></span>Live now</span>
+        <% } else if (m.status === 'ended') { %><span class="badge">Ended</span>
+        <% } else { %><span class="badge b-amber">Upcoming</span><% } %>
+      </div>
+      <h3 class="mt-s truncate"><%= m.title %></h3>
+      <p class="muted small truncate"><%= m.chapterName || 'Class session' %></p>
+      <div class="row wrap gap-s mt-s muted small">
+        <span><i data-lucide="user" style="width:14px;height:14px"></i> <%= m.host ? m.host.name : '—' %></span>
+        <span><i data-lucide="calendar" style="width:14px;height:14px"></i> <%= when %><%= m.startTime ? ' · ' + m.startTime : '' %></span>
+        <% if (m.duration) { %><span><i data-lucide="clock" style="width:14px;height:14px"></i> <%= m.duration %> min</span><% } %>
+      </div>
+      <div class="mt">
+        <% if (m.status === 'ended') { %><button class="btn btn-ghost btn-block" disabled>Session ended</button>
+        <% } else { %><a class="btn <%= m.status === 'live' ? 'btn-primary' : 'btn-soft' %> btn-block" href="/meeting/<%= m.meetingCode %>"><%= m.status === 'live' ? 'Join now' : 'Open class' %></a><% } %>
+      </div>
+    </article>
+  <% }) %>
+</div>
+<div class="empty" data-empty-for="#mList" <%= meetings.length ? 'hidden' : '' %>><div class="ico"><i data-lucide="video-off"></i></div>No classes found. Got a code from your teacher? Use the “Join a class” box in the sidebar.</div>
+<%- include('../partials/shell-bottom') %>

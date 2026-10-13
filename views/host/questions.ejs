@@ -1,36 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <title>Questions</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/responsive.css" />
-  <link rel="stylesheet" href="/css/theme.css" />
-  <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-<body class="relative min-h-screen">
-  <%- include('../partials/sidebar', { role: 'host', active: 'questions' }) %>
-  <main class="ml-64 p-8 relative z-10">
-    <div class="fixed top-4 right-6 z-30">
-      <%- include('../partials/notification-bell', { userId: user._id }) %>
-      <%- include('../partials/live-meeting-alert') %>
-    </div>
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-white text-3xl font-bold">❓ Question Sets (Quizzes)</h1>
-      <a href="/assignment/create" class="btn-glow text-white text-sm px-5 py-2.5 rounded-lg">+ New Question Set</a>
-    </div>
-    <p class="text-gray-400 text-sm mb-6">To send a question live during a class, open the meeting room and use the Q&A panel. Question sets here are quizzes and chapter tests you can review or reuse.</p>
-    <div class="grid md:grid-cols-2 gap-5">
-      <% liveSets.forEach(a => { %>
-        <div class="glass-card card-3d p-5">
-          <h3 class="text-white font-semibold mb-1"><%= a.title %></h3>
-          <p class="text-gray-400 text-sm mb-3"><%= a.questions.length %> questions • <%= a.submissions.length %> responses</p>
-          <a href="/assignment/grade/<%= a._id %>" class="text-indigo-300 text-sm hover:text-indigo-200">View Responses →</a>
-        </div>
-      <% }) %>
-      <% if (liveSets.length === 0) { %><p class="text-gray-500 col-span-2 text-center py-10">No quizzes created yet.</p><% } %>
-    </div>
-  </main>
-  <script>lucide.createIcons();</script>
-</body>
-</html>
+<%- include('../partials/shell-top', { role: 'host', active: 'questions', title: 'Question bank' }) %>
+<div class="page-head">
+  <div><span class="badge b-accent">Assess</span><h2>Question bank</h2><p class="muted"><%= bank.length %> questions across <%= sets %> assignment<%= sets === 1 ? '' : 's' %>. To ask one live, open it in the room's Q&amp;A panel.</p></div>
+  <a class="btn btn-primary" href="/assignment/create"><i data-lucide="plus"></i> New question set</a>
+</div>
+
+<section class="grid g4 mb">
+  <% [['mcq','list-checks','Multiple choice'],['true_false','toggle-left','True / False'],['short_answer','text-cursor-input','Short answer'],['coding','code-2','Coding']].forEach(t => { %>
+    <div class="card stat"><span class="ico"><i data-lucide="<%= t[1] %>"></i></span><b><%= counts[t[0]] || 0 %></b><span class="muted small"><%= t[2] %></span></div>
+  <% }) %>
+</section>
+
+<div class="toolbar">
+  <div class="searchbox"><i data-lucide="search"></i><input class="input" data-search-for="#qbList" placeholder="Search questions…" /></div>
+  <div class="tabs" data-filter-for="#qbList"><button class="on" data-f="all">All</button><button data-f="mcq">MCQ</button><button data-f="true_false">T/F</button><button data-f="short_answer">Short</button><button data-f="coding">Coding</button></div>
+</div>
+
+<div class="card" id="qbList" data-list>
+  <% bank.forEach(b => { %>
+    <a class="item" data-item data-status="<%= b.type %>" href="/assignment/grade/<%= b.setId %>">
+      <span class="badge b-accent"><%= b.type.replace('_', ' ') %></span>
+      <div class="grow"><b class="truncate" style="display:block"><%= b.text %></b><span class="muted small">in “<%= b.set %>”</span></div>
+      <span class="badge"><%= b.points %> pt<%= b.points > 1 ? 's' : '' %></span>
+    </a>
+  <% }) %>
+</div>
+<div class="empty" data-empty-for="#qbList" <%= bank.length ? 'hidden' : '' %>><div class="ico"><i data-lucide="help-circle"></i></div>No questions yet.</div>
+<%- include('../partials/shell-bottom') %>

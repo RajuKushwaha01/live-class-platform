@@ -1,351 +1,207 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-  <title>EduLive — Teach. Connect. Learn. Together.</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/theme.css" />
-  <link rel="stylesheet" href="/css/animations.css" />
-  <link rel="stylesheet" href="/css/responsive.css" />
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <title>EduLive — Teach live. Test instantly. Grade in real time.</title>
+  <%- include('partials/head') %>
+  <style>
+    .stage{position:relative;height:480px;max-width:540px;margin:auto}
+    .stage-main{position:absolute;inset:10px 36px 70px 0;padding:16px}
+    .stage-video{height:210px;border-radius:16px;position:relative;display:grid;place-items:center;overflow:hidden;
+      background:radial-gradient(circle at 25% 20%,rgba(94,234,212,.35),transparent 55%),radial-gradient(circle at 85% 85%,rgba(167,139,250,.4),transparent 55%),#0e1422}
+    .avatar-big{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;background:var(--grad);color:#04121a;font:700 28px var(--font-display);position:relative}
+    .avatar-big::after{content:"";position:absolute;inset:-10px;border-radius:50%;border:2px solid rgba(94,234,212,.5);animation:ring 2.2s ease-out infinite}
+    @keyframes ring{from{transform:scale(.8);opacity:1}to{transform:scale(1.55);opacity:0}}
+    .tag{position:absolute;left:12px;bottom:12px;padding:5px 10px;border-radius:999px;font-size:11px;background:rgba(0,0,0,.5)}
+    .tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+    .tile{aspect-ratio:1;border-radius:12px;display:grid;place-items:center;font:600 13px var(--font-display);background:rgba(255,255,255,.06);border:1px solid var(--line)}
+    .stage-quiz{position:absolute;right:0;bottom:0;width:265px;padding:14px;background:rgba(12,16,26,.92)}
+    .bar{height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+    .bar>i{display:block;height:100%;width:0;background:var(--grad);animation:grow 2.4s .8s cubic-bezier(.2,.8,.2,1) forwards}
+    @keyframes grow{to{width:var(--w)}}
+    .chip{position:absolute;padding:8px 14px;border-radius:999px;font-size:12px;background:rgba(12,16,26,.9);border:1px solid var(--line-strong);backdrop-filter:blur(10px);white-space:nowrap}
+    .fa{animation:fy 6s ease-in-out infinite}.fb{animation:fy 7s -2s ease-in-out infinite}.fc{animation:fy 8s -4s ease-in-out infinite}
+    @keyframes fy{50%{transform:translateY(-12px)}}
+    .num{font:800 54px/1 var(--font-display);background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;opacity:.9}
+    @media(max-width:640px){.stage{height:450px}.stage-quiz{width:225px}}
+  </style>
 </head>
-<body class="relative">
-
-  <%- include('partials/particles-bg') %>
+<body>
+  <div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div>
   <%- include('partials/navbar') %>
 
   <!-- HERO -->
-  <section id="home" class="relative min-h-screen flex items-center justify-center px-5 md:px-6 pt-20 z-10">
-    <div class="hero-grid max-w-6xl mx-auto grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-      <div>
-        <span class="hero-badge inline-block bg-indigo-500/20 border border-indigo-400/40 text-indigo-300 text-xs px-4 py-1.5 rounded-full mb-6">
-          ✨ Next-Gen Virtual Classroom
-        </span>
-        <h1 class="hero-title text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight mb-6">
-          <span class="inline-block">Teach.</span>
-          <span class="inline-block gradient-text">Connect.</span>
-          <span class="inline-block">Learn.</span>
-          <span class="inline-block gradient-text">Together.</span>
+  <section id="home" class="relative z-10 min-h-screen flex items-center px-5 md:px-8 pt-28 pb-16">
+    <div class="hero-grid max-w-6xl mx-auto grid md:grid-cols-2 gap-10 md:gap-14 items-center w-full">
+      <div data-reveal>
+        <span class="pill mb-6"><span class="live-dot"></span> Live classrooms for real teaching</span>
+        <h1 class="hero-title text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] mb-6">
+          Teach live.<br /><span class="gradient-text">Test instantly.</span><br />Grade in real time.
         </h1>
-        <p class="hero-subtitle text-gray-400 text-lg mb-8 max-w-md">
-          A next-generation virtual classroom where teachers and students communicate, learn, collaborate and test their knowledge in real time.
+        <p class="text-gray-400 text-lg max-w-lg mb-8 md:mx-0 mx-auto">
+          One platform where teachers run video classes, push MCQ, true/false and coding questions mid-lesson, and see every answer land the moment a student submits.
         </p>
-        <div class="hero-buttons flex flex-wrap gap-3 md:gap-4 justify-center md:justify-start">
-          <a href="/meeting/create" class="btn-glow text-white px-8 py-4 rounded-xl font-semibold flex items-center gap-2">
-            <i data-lucide="video"></i> Create Meeting
-          </a>
-          <a href="/auth/login" class="glass-card text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/10 transition flex items-center gap-2">
-            <i data-lucide="log-in"></i> Join Meeting
-          </a>
+        <div class="hero-buttons flex flex-wrap gap-3 justify-center md:justify-start">
+          <a href="/auth/register?portal=teacher" class="btn-glow px-7 py-3.5"><i data-lucide="presentation" class="w-4 h-4"></i> Start teaching</a>
+          <a href="/auth/login?portal=student" class="btn-ghost px-7 py-3.5"><i data-lucide="graduation-cap" class="w-4 h-4"></i> I'm a student</a>
+        </div>
+        <div class="flex items-center gap-3 mt-8 justify-center md:justify-start text-sm text-gray-400">
+          <div class="flex -space-x-2">
+            <span class="w-8 h-8 rounded-full grid place-items-center text-xs font-bold" style="background:var(--grad);color:#04121a;border:2px solid #07090f">AK</span>
+            <span class="w-8 h-8 rounded-full grid place-items-center text-xs font-bold bg-violet-400 text-black" style="border:2px solid #07090f">MS</span>
+            <span class="w-8 h-8 rounded-full grid place-items-center text-xs font-bold bg-rose-300 text-black" style="border:2px solid #07090f">PR</span>
+          </div>
+          WebRTC video · Socket.IO real-time · Auto-grading
         </div>
       </div>
 
-       <div class="hero-visual relative h-[440px] flex items-center justify-center overflow-hidden">
-
-  <!-- Ambient holographic glow -->
-  <div class="absolute w-72 h-72 rounded-full bg-indigo-500/10 blur-3xl animate-pulse"></div>
-  <div class="absolute w-52 h-52 rounded-full bg-pink-500/10 blur-3xl translate-x-24 -translate-y-16"></div>
-
-  <!-- Holographic orbit system -->
-  <div class="absolute w-[390px] h-[390px] rounded-full border border-indigo-400/10"></div>
-  <div class="absolute w-[315px] h-[315px] rounded-full border border-purple-400/10 rotate-45"></div>
-  <div class="absolute w-[245px] h-[245px] rounded-full border border-pink-400/10 -rotate-45"></div>
-
-  <!-- Orbiting reaction nodes -->
-  <div class="absolute inset-0 pointer-events-none">
-
-    <div class="orbit orbit-one">
-      <div class="orbit-node node-indigo">🎉</div>
-    </div>
-
-    <div class="orbit orbit-two">
-      <div class="orbit-node node-purple">👍</div>
-    </div>
-
-    <div class="orbit orbit-three">
-      <div class="orbit-node node-pink">✋</div>
-    </div>
-
-  </div>
-
-  <!-- Floating connection particles -->
-  <div class="connection-dot dot-one"></div>
-  <div class="connection-dot dot-two"></div>
-  <div class="connection-dot dot-three"></div>
-  <div class="connection-dot dot-four"></div>
-
-  <!-- Main futuristic console -->
-  <div class="console-border w-full max-w-md shadow-2xl">
-
-    <div class="console-inner relative p-6">
-
-      <!-- Animated scanline -->
-      <div class="scanline"></div>
-
-      <!-- Holographic corner accents -->
-      <div class="corner-accent corner-tl"></div>
-      <div class="corner-accent corner-tr"></div>
-      <div class="corner-accent corner-bl"></div>
-      <div class="corner-accent corner-br"></div>
-
-      <!-- Top status row -->
-      <div class="flex items-center justify-between mb-5 relative z-10">
-
-        <div class="flex items-center gap-2">
-
-          <span class="relative flex w-2 h-2">
-            <span class="absolute inline-flex w-full h-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
-            <span class="relative w-2 h-2 rounded-full bg-red-400"></span>
-          </span>
-
-          <span class="text-red-400 text-xs font-semibold tracking-wide">
-            LIVE CLASS
-          </span>
-
+      <!-- Animated "live class" stage -->
+      <div class="hero-visual stage" data-reveal data-delay="150">
+        <div class="stage-main glass-card">
+          <div class="flex items-center justify-between mb-3 text-xs">
+            <span class="flex items-center gap-2 text-rose-300 font-semibold"><span class="live-dot"></span> LIVE</span>
+            <span class="text-gray-400">Chapter 3 · Java OOP</span>
+            <span class="text-gray-500 font-mono">01:24:32</span>
+          </div>
+          <div class="stage-video">
+            <div class="avatar-big">RS</div>
+            <div class="waveform absolute right-4 top-4"><span></span><span></span><span></span><span></span><span></span></div>
+            <span class="tag">Raju · Teacher</span>
+          </div>
+          <div class="tiles">
+            <div class="tile">PK</div><div class="tile">AS</div><div class="tile">MT</div><div class="tile">JD</div><div class="tile text-gray-400">+18</div>
+          </div>
         </div>
 
-        <span class="text-gray-500 text-xs font-mono">
-          Chapter 3 — OOP
-        </span>
+        <div class="stage-quiz glass-card fa">
+          <p class="text-[11px] text-gray-400 mb-1">📋 Live question · 14 / 22 answered</p>
+          <p class="text-sm font-semibold mb-3">Which keyword enables inheritance?</p>
+          <div class="space-y-2 text-xs">
+            <div><div class="flex justify-between mb-1"><span>A · extends</span><span class="text-accent" style="color:var(--accent)">72%</span></div><div class="bar"><i style="--w:72%"></i></div></div>
+            <div><div class="flex justify-between mb-1"><span>B · implements</span><span>14%</span></div><div class="bar"><i style="--w:14%"></i></div></div>
+            <div><div class="flex justify-between mb-1"><span>C · super</span><span>9%</span></div><div class="bar"><i style="--w:9%"></i></div></div>
+          </div>
+        </div>
 
+        <div class="chip fb" style="top:0;right:10px">✋ Priya raised a hand</div>
+        <div class="chip fc" style="top:46%;left:-6px">🏆 Class average 86%</div>
+        <div class="chip fa" style="bottom:12px;left:20px">💬 "Got it, thanks!"</div>
       </div>
-
-      <!-- Participant avatar stack + waveform -->
-      <div class="flex items-center justify-between mb-5 relative z-10">
-
-        <div class="flex -space-x-3">
-
-          <div class="avatar-float online-dot w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 border-2 border-[#0b0d1c] flex items-center justify-center text-sm">
-            👩‍🎓
-          </div>
-
-          <div class="avatar-float online-dot w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 border-2 border-[#0b0d1c] flex items-center justify-center text-sm">
-            🧑‍💻
-          </div>
-
-          <div class="avatar-float online-dot w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 border-2 border-[#0b0d1c] flex items-center justify-center text-sm">
-            👨‍🏫
-          </div>
-
-          <div class="avatar-float w-10 h-10 rounded-full bg-white/10 border-2 border-[#0b0d1c] flex items-center justify-center text-xs text-gray-300">
-            +18
-          </div>
-
-        </div>
-
-        <!-- Live audio waveform -->
-        <div class="waveform">
-
-          <span class="bg-green-400"></span>
-          <span class="bg-green-400"></span>
-          <span class="bg-green-400"></span>
-          <span class="bg-green-400"></span>
-          <span class="bg-green-400"></span>
-
-        </div>
-
-      </div>
-
-      <!-- Score ring + live question card -->
-      <div class="grid grid-cols-3 gap-4 relative z-10">
-
-        <!-- Score -->
-        <div class="col-span-1 flex flex-col items-center justify-center bg-white/5 rounded-xl py-4 score-panel">
-
-          <svg class="score-ring w-16 h-16" viewBox="0 0 64 64">
-
-            <circle
-              cx="32"
-              cy="32"
-              r="26"
-              stroke="rgba(255,255,255,0.1)"
-              stroke-width="6"
-              fill="none"
-            />
-
-            <circle
-              cx="32"
-              cy="32"
-              r="26"
-              stroke="url(#scoreGrad)"
-              stroke-width="6"
-              fill="none"
-              stroke-dasharray="163"
-              stroke-dashoffset="30"
-              stroke-linecap="round"
-            />
-
-            <defs>
-
-              <linearGradient
-                id="scoreGrad"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="100%"
-              >
-
-                <stop
-                  offset="0%"
-                  stop-color="#818cf8"
-                />
-
-                <stop
-                  offset="100%"
-                  stop-color="#f472b6"
-                />
-
-              </linearGradient>
-
-            </defs>
-
-          </svg>
-
-          <span class="text-white text-xs font-semibold -mt-11">
-            82%
-          </span>
-
-          <span class="text-gray-500 text-[10px] mt-6">
-            Avg. Score
-          </span>
-
-        </div>
-
-        <!-- Question -->
-        <div class="col-span-2 glass-card px-4 py-3 flex flex-col justify-center question-popup-animate">
-
-          <span class="text-white text-xs font-medium mb-1">
-            📋 "What is inheritance?"
-          </span>
-
-          <div class="flex items-center justify-between">
-
-            <span class="text-indigo-300 text-xs">
-              14 of 22 answered
-            </span>
-
-            <div class="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
-
-              <div
-                class="h-full progress-bar-fill"
-                style="width: 64%;"
-              ></div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
-
-</div>
-
     </div>
   </section>
 
-  <!-- FEATURES -->
-  <section id="features" class="relative py-14 md:py-24 px-5 md:px-6 z-10">
-    <div class="max-w-6xl mx-auto">
-      <h2 class="reveal-section text-4xl font-bold text-white text-center mb-4">Everything You Need to <span class="gradient-text">Teach Live</span></h2>
-      <p class="reveal-section text-gray-400 text-center mb-16 max-w-xl mx-auto">One platform for video classes, real-time Q&A, assignments and progress tracking.</p>
+  <!-- MARQUEE -->
+  <section class="relative z-10 py-6">
+    <div class="marquee">
+      <div class="marquee-track">
+        <% const caps = ["HD video & audio","Live MCQ quizzes","Coding questions","Auto-grading","Screen sharing","Whiteboard","Waiting room","Attendance tracking","Chapter materials","Instant notifications"]; %>
+        <% caps.concat(caps).forEach(c => { %><span class="pill whitespace-nowrap"><i data-lucide="sparkles" class="w-3.5 h-3.5" style="color:var(--accent)"></i><%= c %></span><% }) %>
+      </div>
+    </div>
+  </section>
 
-      <div class="features-grid grid md:grid-cols-3 gap-5 md:gap-6">
-        <% const features = [
-          {icon: 'video', title: 'HD Video Classes', desc: 'Crystal clear video & audio powered by WebRTC for smooth live teaching.'},
-          {icon: 'message-circle', title: 'Real-time Chat', desc: 'Instant messaging, reactions and raise-hand for full participation.'},
-          {icon: 'book-open', title: 'Chapter Materials', desc: 'Share PDFs, notes, code examples and videos directly in class.'},
-          {icon: 'clipboard-check', title: 'Live Questions', desc: 'Send instant quizzes and see who answered correctly in real time.'},
-          {icon: 'bar-chart-3', title: 'Score Analytics', desc: 'Track assignment scores and class performance with visual charts.'},
-          {icon: 'shield-check', title: 'Secure & Controlled', desc: 'Role-based access with host controls for mute, remove & recording.'}
-        ]; %>
-        <% features.forEach(f => { %>
-          <div class="feature-card glass-card card-3d p-6">
-            <div class="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center mb-4">
-              <i data-lucide="<%= f.icon %>" class="text-indigo-300"></i>
-            </div>
-            <h3 class="text-white font-semibold text-lg mb-2"><%= f.title %></h3>
-            <p class="text-gray-400 text-sm"><%= f.desc %></p>
+  <!-- FEATURES (bento) -->
+  <section id="features" class="relative z-10 py-16 md:py-24 px-5 md:px-8">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-12" data-reveal>
+        <span class="eyebrow">Features</span>
+        <h2 class="text-3xl md:text-5xl font-bold mt-3">Everything a classroom needs,<br /><span class="gradient-text">nothing it doesn't</span></h2>
+      </div>
+
+      <div class="features-grid grid md:grid-cols-6 gap-4">
+        <div class="glass-card card-3d p-7 md:col-span-4" data-reveal>
+          <div class="icon-box mb-4"><i data-lucide="video" class="w-5 h-5"></i></div>
+          <h3 class="text-xl font-semibold mb-2">Crystal-clear live video</h3>
+          <p class="text-gray-400 text-sm max-w-md">Peer-to-peer WebRTC with echo cancellation and noise suppression, auto-reconnect, and mic/camera status on every tile.</p>
+          <div class="waveform mt-6"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        </div>
+        <div class="glass-card card-3d p-7 md:col-span-2" data-reveal data-delay="80">
+          <div class="icon-box mb-4"><i data-lucide="bell-ring" class="w-5 h-5"></i></div>
+          <h3 class="text-xl font-semibold mb-2">Go-live alerts</h3>
+          <p class="text-gray-400 text-sm">Students get a banner the second you start the class.</p>
+        </div>
+        <div class="glass-card card-3d p-7 md:col-span-2" data-reveal>
+          <div class="icon-box mb-4"><i data-lucide="list-checks" class="w-5 h-5"></i></div>
+          <h3 class="text-xl font-semibold mb-2">4 question types</h3>
+          <p class="text-gray-400 text-sm">MCQ with 4 options, True/False, short answer and coding.</p>
+        </div>
+        <div class="glass-card card-3d p-7 md:col-span-2" data-reveal data-delay="80">
+          <div class="icon-box mb-4"><i data-lucide="zap" class="w-5 h-5"></i></div>
+          <h3 class="text-xl font-semibold mb-2">Instant grading</h3>
+          <p class="text-gray-400 text-sm">Objective answers are marked on submit. You grade the rest.</p>
+        </div>
+        <div class="glass-card card-3d p-7 md:col-span-2" data-reveal data-delay="160">
+          <div class="icon-box mb-4"><i data-lucide="bar-chart-3" class="w-5 h-5"></i></div>
+          <h3 class="text-xl font-semibold mb-2">Live analytics</h3>
+          <p class="text-gray-400 text-sm">Scores, attendance and participation in one view.</p>
+        </div>
+        <div class="glass-card card-3d p-7 md:col-span-3" data-reveal>
+          <div class="icon-box mb-4"><i data-lucide="book-open" class="w-5 h-5"></i></div>
+          <h3 class="text-xl font-semibold mb-2">Chapter materials</h3>
+          <p class="text-gray-400 text-sm">PDFs, images, code samples and links, open right inside the lesson.</p>
+        </div>
+        <div class="glass-card card-3d p-7 md:col-span-3" data-reveal data-delay="80">
+          <div class="icon-box mb-4"><i data-lucide="shield-check" class="w-5 h-5"></i></div>
+          <h3 class="text-xl font-semibold mb-2">You stay in control</h3>
+          <p class="text-gray-400 text-sm">Password rooms, waiting room, lock meeting, mute or remove anyone.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how" class="relative z-10 py-16 md:py-24 px-5 md:px-8">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-12" data-reveal>
+        <span class="eyebrow">How it works</span>
+        <h2 class="text-3xl md:text-5xl font-bold mt-3">From link to <span class="gradient-text">graded</span> in four steps</h2>
+      </div>
+      <div class="grid md:grid-cols-4 gap-4">
+        <% [["Create","Set the chapter, time and an optional password."],["Share","Send the unique link. Students sign in and join."],["Teach","Video, chat, materials and live questions."],["Grade","See answers arrive, award marks, students see scores."]].forEach((s,i) => { %>
+          <div class="glass-card card-3d p-6" data-reveal data-delay="<%= i*90 %>">
+            <div class="num mb-4">0<%= i+1 %></div>
+            <h3 class="text-lg font-semibold mb-1"><%= s[0] %></h3>
+            <p class="text-gray-400 text-sm"><%= s[1] %></p>
           </div>
         <% }) %>
       </div>
     </div>
   </section>
 
-  <!-- COURSES -->
-  <section id="courses" class="relative py-14 md:py-24 px-5 md:px-6 z-10">
-    <div class="max-w-6xl mx-auto">
-      <h2 class="reveal-section text-4xl font-bold text-white text-center mb-4">Popular <span class="gradient-text">Course Categories</span></h2>
-      <p class="reveal-section text-gray-400 text-center mb-16 max-w-xl mx-auto">Teach or learn any subject with full support for slides, code, and live testing.</p>
-      <div class="courses-grid grid md:grid-cols-4 gap-5 md:gap-6">
-        <% const courses = [
-          { icon: 'code-2', title: 'Programming', desc: 'Java, Python, C++, Web Dev', color: 'from-indigo-500/20 to-indigo-500/5' },
-          { icon: 'calculator', title: 'Mathematics', desc: 'Algebra, Calculus, Statistics', color: 'from-purple-500/20 to-purple-500/5' },
-          { icon: 'flask-conical', title: 'Science', desc: 'Physics, Chemistry, Biology', color: 'from-pink-500/20 to-pink-500/5' },
-          { icon: 'languages', title: 'Languages', desc: 'English, Spanish, French', color: 'from-green-500/20 to-green-500/5' },
-        ]; %>
-        <% courses.forEach(c => { %>
-          <div class="feature-card glass-card card-3d p-6 bg-gradient-to-br <%= c.color %>">
-            <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-4"><i data-lucide="<%= c.icon %>" class="text-white"></i></div>
-            <h3 class="text-white font-semibold text-lg mb-1"><%= c.title %></h3>
-            <p class="text-gray-400 text-sm mb-4"><%= c.desc %></p>
-            <a href="/auth/register" class="text-indigo-300 text-sm hover:text-indigo-200">Explore →</a>
-          </div>
-        <% }) %>
-      </div>
-    </div>
-  </section>
-
-  <!-- MEETINGS -->
-  <section id="meetings" class="relative py-14 md:py-24 px-5 md:px-6 z-10">
+  <!-- PORTALS -->
+  <section id="portals" class="relative z-10 py-16 md:py-24 px-5 md:px-8">
     <div class="max-w-5xl mx-auto">
-      <h2 class="reveal-section text-4xl font-bold text-white text-center mb-16">How <span class="gradient-text">Live Meetings</span> Work</h2>
-      <div class="space-y-8">
-        <% const steps = [
-          { icon: 'video-plus', title: 'Host Creates a Meeting', desc: 'Set chapter, date, password and get a unique link instantly.' },
-          { icon: 'share-2', title: 'Share the Link', desc: 'Send the meeting link + password to your students.' },
-          { icon: 'log-in', title: 'Participants Join', desc: 'Students log in and enter through the shared link — with optional waiting room.' },
-          { icon: 'presentation', title: 'Teach & Engage', desc: 'Share chapters, send live MCQ/coding questions, and chat in real time.' },
-          { icon: 'bar-chart-3', title: 'Track Results', desc: 'Auto-graded and manual scores feed straight into analytics.' },
-        ]; %>
-        <% steps.forEach((s) => { %>
-          <div class="reveal-section flex items-center gap-6">
-            <div class="w-12 h-12 shrink-0 rounded-full bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center"><i data-lucide="<%= s.icon %>" class="text-indigo-300 w-5 h-5"></i></div>
-            <div class="flex-1 glass-card card-3d p-5">
-              <h3 class="text-white font-semibold mb-1"><%= s.title %></h3>
-              <p class="text-gray-400 text-sm"><%= s.desc %></p>
-            </div>
+      <div class="text-center mb-12" data-reveal>
+        <span class="eyebrow">Two portals</span>
+        <h2 class="text-3xl md:text-5xl font-bold mt-3">Everyone gets their <span class="gradient-text">own login</span></h2>
+      </div>
+      <div class="grid md:grid-cols-2 gap-5">
+        <div class="glass-card card-3d p-8" data-reveal>
+          <div class="icon-box mb-5"><i data-lucide="presentation" class="w-5 h-5"></i></div>
+          <h3 class="text-2xl font-semibold mb-2">Teacher</h3>
+          <p class="text-gray-400 text-sm mb-6">Host meetings, publish questions and assignments, grade submissions, and track every student.</p>
+          <div class="flex gap-3 flex-wrap">
+            <a href="/auth/login?portal=teacher" class="btn-glow px-6 py-3 text-sm">Teacher sign in</a>
+            <a href="/auth/register?portal=teacher" class="btn-ghost px-6 py-3 text-sm">Create account</a>
           </div>
-        <% }) %>
+        </div>
+        <div class="glass-card card-3d p-8" data-reveal data-delay="100">
+          <div class="icon-box mb-5"><i data-lucide="graduation-cap" class="w-5 h-5"></i></div>
+          <h3 class="text-2xl font-semibold mb-2">Student</h3>
+          <p class="text-gray-400 text-sm mb-6">Get notified when class goes live, join with one tap, complete tasks and see your marks.</p>
+          <div class="flex gap-3 flex-wrap">
+            <a href="/auth/login?portal=student" class="btn-glow px-6 py-3 text-sm">Student sign in</a>
+            <a href="/auth/register?portal=student" class="btn-ghost px-6 py-3 text-sm">Create account</a>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- CTA -->
-  <section class="relative py-14 md:py-24 px-5 md:px-6 z-10">
-    <div class="reveal-section max-w-4xl mx-auto glass-card card-3d p-12 text-center">
-      <h2 class="text-3xl font-bold text-white mb-4">Ready to start teaching?</h2>
-      <p class="text-gray-400 mb-8">Create your first live classroom in under a minute.</p>
-      <a href="/auth/register" class="btn-glow inline-block text-white px-8 py-4 rounded-xl font-semibold">Get Started Free →</a>
-    </div>
-  </section>
-
-  <footer class="relative border-t border-white/10 py-8 text-center text-gray-500 text-sm z-10">
-    © 2026 EduLive. Built with ❤️ for educators everywhere.
+  <footer class="relative z-10 border-t border-white/10 py-8 px-6 text-center text-sm text-gray-500">
+    © 2026 EduLive · Built for educators ·
+    <a href="/auth/login?portal=admin" class="hover:text-white">Admin</a>
   </footer>
 
-  <script src="/js/particles.js"></script>
-  <script src="/js/page-animations.js"></script>
-  <script>
-    lucide.createIcons();
-    initParticles("particlesCanvas");
-  </script>
+  <%- include('partials/foot') %>
 </body>
 </html>

@@ -1,310 +1,351 @@
 const Meeting = require("../models/Meeting");
 const Attendance = require("../models/Attendance");
+const Chapter = require("../models/Chapter");
 
-const roomUsers = {}; // { meetingCode: { socketId: {...} } }
-const waitingUsers = {}; // { meetingCode: { socketId: {...} } }
-const attendanceLog = {}; // { socketId: attendanceRecordId }
+const rooms = {};          // code -> { socketId: user }
+const waiting = {};        // code -> { socketId: {userId,name} }
+const admitted = {};       // code -> Set(userId)  (let through the waiting room)
+const removed = {};        // code -> Set(userId)  (kicked by host)
+const meta = {};           // code -> { hostId, chatAllowed, shareAllowed }
+const attendanceLog = {};  // socketId -> attendance _id
+
+const EMOJIS = ["👍", "❤️", "😂", "🎉", "😮", "👏", "🔥"];
+const rid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const clip = (s, n) => String(s == null ? "" : s).trim().slice(0, n || 1000);
+const num = (v, lo, hi, d) => { v = Number(v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
+const listRoom = (c) => Object.values(rooms[c] || {});
+const listWait = (c) => Object.entries(waiting[c] || {}).map(([socketId, u]) => ({ socketId, ...u }));
+const cleanReply = (r) => {
+  if (!r || typeof r !== "object") return null;
+  const text = clip(r.text, 160);
+  return text ? { id: clip(r.id, 40), name: clip(r.name, 60), text } : null;
+};
 
 function initMeetingSocket(io) {
   io.on("connection", (socket) => {
-    console.log("🔌 Socket connected:", socket.id);
+    // Identity comes from the login session — never from the browser's payload.
+    const sess = socket.request.session;
+    const me = sess && sess.user;
+    if (!me) { socket.emit("auth-required"); return socket.disconnect(true); }
 
-    // ---------- GLOBAL USER REGISTRATION (FOR PUSH NOTIFICATIONS & SUBMISSIONS) ----------
-    socket.on("register-user", ({ userId }) => {
-      if (userId) {
-        socket.join(`user-${userId}`);
+    socket.userId = String(me._id);
+    socket.userName = me.name;
+    socket.userRole = me.role;
+    socket.join(`user-${socket.userId}`); // personal channel: notifications + private messages
+
+    const inRoom = () => !!(socket.meetingCode && rooms[socket.meetingCode] && rooms[socket.meetingCode][socket.id]);
+    const system = (code, text) => io.to(code).emit("system-message", { text, time: new Date().toISOString() });
+
+    socket.on("register-user", () => {}); // kept for older pages; identity is now automatic
+
+    // ================= JOIN =================
+    socket.on("join-room", async ({ meetingCode } = {}) => {
+      const code = clip(meetingCode, 20).toUpperCase();
+      try {
+        const meeting = await Meeting.findOne({ meetingCode: code });
+        if (!meeting || meeting.status === "ended") return socket.emit("room-error", { message: "This class has ended or does not exist." });
+
+        const isHost = String(meeting.host) === socket.userId;
+        const mod = isHost || socket.userRole === "admin";
+        if (!mod && removed[code] && removed[code].has(socket.userId)) return socket.emit("room-error", { message: "You were removed from this class by the host." });
+        if (!mod && !meeting.participants.some((p) => String(p) === socket.userId)) return socket.emit("room-error", { message: "Please join this class from its link first." });
+
+        socket.meetingCode = code;
+        socket.isHost = isHost;
+        socket.isMod = mod;
+        const perms = meeting.participantPermissions || {};
+        meta[code] = { hostId: String(meeting.host), chatAllowed: perms.chatAllowed !== false, shareAllowed: perms.screenShareAllowed !== false };
+        if (mod) socket.join(`mods-${code}`);
+
+        const passed = admitted[code] && admitted[code].has(socket.userId);
+        if (meeting.waitingRoomEnabled && !mod && !passed) {
+          waiting[code] = waiting[code] || {};
+          waiting[code][socket.id] = { userId: socket.userId, name: socket.userName };
+          socket.join(`waiting-${code}`);
+          io.to(`mods-${code}`).emit("waiting-room-update", listWait(code));
+          return socket.emit("waiting-for-approval");
+        }
+        await admit(socket, meeting);
+      } catch (e) {
+        console.error("join-room:", e.message);
+        socket.emit("room-error", { message: "Could not join the class. Please refresh." });
       }
     });
 
-    // ---------- JOIN ROOM (checks waiting room) ----------
-    socket.on("join-room", async ({ meetingCode, userId, name, role, isHost }) => {
-      const meeting = await Meeting.findOne({ meetingCode });
-      if (!meeting) return;
+    async function admit(sock, meeting) {
+      const code = sock.meetingCode;
+      sock.join(code);
+      rooms[code] = rooms[code] || {};
+      rooms[code][sock.id] = {
+        socketId: sock.id, userId: sock.userId, name: sock.userName, role: sock.userRole,
+        isHost: sock.isHost, handRaised: false, mic: true, cam: true,
+      };
+      const m = meta[code];
+      sock.emit("room-joined", {
+        selfSocketId: sock.id, hostUserId: m.hostId, chatAllowed: m.chatAllowed, shareAllowed: m.shareAllowed,
+        history: (meeting.chatHistory || []).slice(-60).map((c) => ({
+          id: String(c._id), scope: "public", text: c.message, time: c.sentAt,
+          from: { userId: String(c.sender || ""), name: c.senderName, isHost: String(c.sender) === m.hostId },
+        })),
+      });
+      sock.to(code).emit("user-joined", { socketId: sock.id, userId: sock.userId, name: sock.userName, isHost: sock.isHost });
+      io.to(code).emit("participants-update", listRoom(code));
+      system(code, `${sock.userName} joined`);
+      try {
+        const rec = await Attendance.create({ meeting: meeting._id, participant: sock.userId, participantName: sock.userName });
+        attendanceLog[sock.id] = rec._id;
+      } catch (e) { console.error("attendance:", e.message); }
+    }
 
-      socket.meetingCode = meetingCode;
-      socket.userId = userId;
-      socket.userName = name;
-      socket.userRole = role;
-
-      // If waiting room is enabled and user is not host → hold in waiting area
-      if (meeting.waitingRoomEnabled && !isHost) {
-        if (!waitingUsers[meetingCode]) waitingUsers[meetingCode] = {};
-        waitingUsers[meetingCode][socket.id] = { userId, name, role };
-        socket.join(`waiting-${meetingCode}`);
-
-        // Notify host of new waiting participant
-        io.to(meetingCode).emit("waiting-room-update", Object.values(waitingUsers[meetingCode]));
-        socket.emit("waiting-for-approval");
-        return;
-      }
-
-      await admitUserToRoom(io, socket, meetingCode, userId, name, role);
-    });
-
-    // ---------- HOST: ADMIT / DENY FROM WAITING ROOM ----------
-    socket.on("admit-participant", async ({ meetingCode, targetSocketId }) => {
-      const waitingUser = waitingUsers[meetingCode]?.[targetSocketId];
-      if (!waitingUser) return;
-
-      delete waitingUsers[meetingCode][targetSocketId];
-      io.to(meetingCode).emit("waiting-room-update", Object.values(waitingUsers[meetingCode] || {}));
-
+    // ================= WAITING ROOM (host) =================
+    socket.on("admit-participant", ({ targetSocketId } = {}) => {
+      const code = socket.meetingCode;
+      if (!socket.isMod || !waiting[code] || !waiting[code][targetSocketId]) return;
+      const u = waiting[code][targetSocketId];
+      delete waiting[code][targetSocketId];
+      (admitted[code] = admitted[code] || new Set()).add(u.userId);
+      io.to(`mods-${code}`).emit("waiting-room-update", listWait(code));
       io.to(targetSocketId).emit("admitted");
-      const targetSocket = io.sockets.sockets.get(targetSocketId);
-      if (targetSocket) {
-        await admitUserToRoom(io, targetSocket, meetingCode, waitingUser.userId, waitingUser.name, waitingUser.role);
-      }
     });
 
-    socket.on("deny-participant", ({ meetingCode, targetSocketId }) => {
-      if (waitingUsers[meetingCode]?.[targetSocketId]) {
-        delete waitingUsers[meetingCode][targetSocketId];
-        io.to(meetingCode).emit("waiting-room-update", Object.values(waitingUsers[meetingCode] || {}));
-      }
+    socket.on("deny-participant", ({ targetSocketId } = {}) => {
+      const code = socket.meetingCode;
+      if (!socket.isMod || !waiting[code] || !waiting[code][targetSocketId]) return;
+      delete waiting[code][targetSocketId];
+      io.to(`mods-${code}`).emit("waiting-room-update", listWait(code));
       io.to(targetSocketId).emit("denied");
     });
 
-    // ---------- WEBRTC SIGNALING ----------
-    socket.on("webrtc-offer", ({ to, offer }) => {
-      io.to(to).emit("webrtc-offer", { from: socket.id, offer, name: socket.userName });
+    // ================= WEBRTC SIGNALING =================
+    const relay = (evt, key) => socket.on(evt, (d = {}) => {
+      if (!inRoom() || !rooms[socket.meetingCode][d.to]) return;
+      io.to(d.to).emit(evt, { from: socket.id, [key]: d[key], name: socket.userName });
     });
+    relay("webrtc-offer", "offer");
+    relay("webrtc-answer", "answer");
+    relay("webrtc-ice-candidate", "candidate");
 
-    socket.on("webrtc-answer", ({ to, answer }) => {
-      io.to(to).emit("webrtc-answer", { from: socket.id, answer });
-    });
+    // ================= PUBLIC CHAT =================
+    socket.on("chat-message", async ({ text, replyTo } = {}) => {
+      if (!inRoom()) return;
+      const code = socket.meetingCode;
+      text = clip(text);
+      if (!text) return;
+      if (!socket.isMod && meta[code].chatAllowed === false)
+        return socket.emit("chat-blocked", { message: "Public chat is turned off. You can still message the teacher privately." });
 
-    socket.on("webrtc-ice-candidate", ({ to, candidate }) => {
-      io.to(to).emit("webrtc-ice-candidate", { from: socket.id, candidate });
-    });
-
-    // ---------- CHAT (respects chatAllowed permission) ----------
-    socket.on("chat-message", async ({ meetingCode, message, name, userId }) => {
-      const meeting = await Meeting.findOne({ meetingCode });
-      if (meeting && !meeting.participantPermissions.chatAllowed && socket.userRole !== "host") {
-        socket.emit("chat-blocked", { message: "Chat has been disabled by the host." });
-        return;
-      }
-
-      io.to(meetingCode).emit("chat-message", {
-        system: false,
-        senderId: userId,
-        senderName: name,
-        message,
-        time: new Date().toLocaleTimeString(),
+      io.to(code).emit("chat-message", {
+        id: rid(), scope: "public", text, replyTo: cleanReply(replyTo), time: new Date().toISOString(),
+        from: { userId: socket.userId, name: socket.userName, isHost: socket.isHost },
       });
+      Meeting.updateOne({ meetingCode: code }, { $push: { chatHistory: { sender: socket.userId, senderName: socket.userName, message: text } } })
+        .catch((e) => console.error("chat save:", e.message));
+    });
 
-      try {
-        await Meeting.findOneAndUpdate(
-          { meetingCode },
-          { $push: { chatHistory: { sender: userId, senderName: name, message } } }
-        );
-      } catch (e) {
-        console.error("Chat save error:", e.message);
+    // ================= PRIVATE MESSAGES =================
+    // Teacher ↔ anyone. Students can only message the teacher.
+    const dmAllowed = (toUserId) => socket.isMod || toUserId === meta[socket.meetingCode].hostId;
+
+    socket.on("private-message", ({ toUserId, text, replyTo } = {}) => {
+      if (!inRoom()) return;
+      const code = socket.meetingCode;
+      toUserId = String(toUserId || "");
+      text = clip(text);
+      if (!text || !toUserId) return;
+      if (!dmAllowed(toUserId)) return socket.emit("dm-failed", { message: "Students can only message the teacher privately." });
+      const target = listRoom(code).find((u) => u.userId === toUserId);
+      if (!target) return socket.emit("dm-failed", { message: "That person isn't in the class right now." });
+
+      const msg = {
+        id: rid(), scope: "dm", meetingCode: code, text, replyTo: cleanReply(replyTo), time: new Date().toISOString(),
+        from: { userId: socket.userId, name: socket.userName, isHost: socket.isHost },
+        to: { userId: target.userId, name: target.name },
+      };
+      io.to(`user-${socket.userId}`).emit("private-message", msg);
+      if (target.userId !== socket.userId) io.to(`user-${target.userId}`).emit("private-message", msg);
+    });
+
+    socket.on("typing", ({ scope, toUserId } = {}) => {
+      if (!inRoom()) return;
+      const payload = { scope, userId: socket.userId, name: socket.userName };
+      if (scope === "dm") {
+        toUserId = String(toUserId || "");
+        if (toUserId && dmAllowed(toUserId)) io.to(`user-${toUserId}`).emit("typing", payload);
+      } else socket.to(socket.meetingCode).emit("typing", { ...payload, scope: "public" });
+    });
+
+    // ================= HAND / REACTIONS / MEDIA =================
+    socket.on("raise-hand", ({ raised } = {}) => {
+      if (!inRoom()) return;
+      const code = socket.meetingCode;
+      rooms[code][socket.id].handRaised = !!raised;
+      io.to(code).emit("participants-update", listRoom(code));
+      if (raised) {
+        io.to(`mods-${code}`).emit("hand-raised", { name: socket.userName });
+        if (attendanceLog[socket.id]) Attendance.findByIdAndUpdate(attendanceLog[socket.id], { $inc: { handRaisedCount: 1 } }).catch(() => {});
       }
     });
 
-    // ---------- TYPING INDICATOR ----------
-    socket.on("typing", ({ meetingCode, name }) => {
-      socket.to(meetingCode).emit("user-typing", { name });
+    socket.on("send-reaction", ({ emoji } = {}) => {
+      if (inRoom() && EMOJIS.includes(emoji)) io.to(socket.meetingCode).emit("reaction-received", { emoji, name: socket.userName });
     });
 
-    socket.on("stop-typing", ({ meetingCode, name }) => {
-      socket.to(meetingCode).emit("user-stop-typing", { name });
+    socket.on("toggle-media", ({ type, enabled } = {}) => {
+      if (!inRoom()) return;
+      const code = socket.meetingCode, u = rooms[code][socket.id];
+      if (type === "audio") u.mic = !!enabled;
+      else if (type === "video") u.cam = !!enabled;
+      else return;
+      io.to(code).emit("participants-update", listRoom(code));
     });
 
-    // ---------- RAISE HAND (tracked for attendance) ----------
-    socket.on("raise-hand", async ({ meetingCode, name, raised }) => {
-      if (roomUsers[meetingCode]?.[socket.id]) {
-        roomUsers[meetingCode][socket.id].handRaised = raised;
-      }
-      io.to(meetingCode).emit("hand-raised", { socketId: socket.id, name, raised });
+    // ================= HOST CONTROLS =================
+    const target = (id) => (inRoom() && rooms[socket.meetingCode][id]) ? id : null;
 
-      if (raised && attendanceLog[socket.id]) {
-        await Attendance.findByIdAndUpdate(attendanceLog[socket.id], { $inc: { handRaisedCount: 1 } });
-      }
-    });
+    socket.on("host-mute-participant", ({ targetSocketId } = {}) => { if (socket.isMod && target(targetSocketId)) io.to(targetSocketId).emit("force-mute"); });
+    socket.on("host-disable-camera", ({ targetSocketId } = {}) => { if (socket.isMod && target(targetSocketId)) io.to(targetSocketId).emit("force-camera-off"); });
 
-    // ---------- REACTIONS ----------
-    socket.on("send-reaction", ({ meetingCode, name, emoji }) => {
-      io.to(meetingCode).emit("reaction-received", { name, emoji, socketId: socket.id });
-    });
-
-    // ---------- MIC/CAM TOGGLE ----------
-    socket.on("toggle-media", ({ meetingCode, type, enabled, name }) => {
-      socket.to(meetingCode).emit("peer-media-toggle", { socketId: socket.id, type, enabled, name });
-    });
-
-    // ---------- GRANULAR HOST CONTROLS ----------
-    socket.on("host-mute-participant", ({ meetingCode, targetSocketId }) => {
-      io.to(targetSocketId).emit("force-mute");
-    });
-
-    socket.on("host-disable-camera", ({ meetingCode, targetSocketId }) => {
-      io.to(targetSocketId).emit("force-camera-off");
-    });
-
-    socket.on("host-remove-participant", ({ meetingCode, targetSocketId }) => {
+    socket.on("host-remove-participant", ({ targetSocketId } = {}) => {
+      if (!socket.isMod || !target(targetSocketId)) return;
+      const code = socket.meetingCode, u = rooms[code][targetSocketId];
+      (removed[code] = removed[code] || new Set()).add(u.userId);
       io.to(targetSocketId).emit("force-remove");
-      io.sockets.sockets.get(targetSocketId)?.leave(meetingCode);
     });
 
-    // Toggle global chat / screenshare permissions
-    socket.on("host-toggle-chat", async ({ meetingCode, allowed }) => {
-      await Meeting.findOneAndUpdate({ meetingCode }, { "participantPermissions.chatAllowed": allowed });
-      io.to(meetingCode).emit("chat-permission-changed", { allowed });
+    const savePerms = async (patch) => {
+      const code = socket.meetingCode;
+      Object.assign(meta[code], patch);
+      const set = {};
+      if ("chatAllowed" in patch) set["participantPermissions.chatAllowed"] = patch.chatAllowed;
+      if ("shareAllowed" in patch) set["participantPermissions.screenShareAllowed"] = patch.shareAllowed;
+      await Meeting.updateOne({ meetingCode: code }, set);
+      io.to(code).emit("permissions-changed", { chatAllowed: meta[code].chatAllowed, shareAllowed: meta[code].shareAllowed });
+    };
+    socket.on("host-toggle-chat", ({ allowed } = {}) => { if (socket.isMod && inRoom()) savePerms({ chatAllowed: !!allowed }).catch(() => {}); });
+    socket.on("host-toggle-screenshare", ({ allowed } = {}) => { if (socket.isMod && inRoom()) savePerms({ shareAllowed: !!allowed }).catch(() => {}); });
+    socket.on("host-toggle-lock", ({ isLocked } = {}) => {
+      if (socket.isMod && inRoom()) Meeting.updateOne({ meetingCode: socket.meetingCode }, { isLocked: !!isLocked }).catch(() => {});
     });
 
-    socket.on("host-toggle-screenshare", async ({ meetingCode, allowed }) => {
-      await Meeting.findOneAndUpdate({ meetingCode }, { "participantPermissions.screenShareAllowed": allowed });
-      io.to(meetingCode).emit("screenshare-permission-changed", { allowed });
+    socket.on("host-announcement", ({ message } = {}) => {
+      message = clip(message, 400);
+      if (socket.isMod && inRoom() && message)
+        io.to(socket.meetingCode).emit("announcement", { message, from: socket.userName, time: new Date().toISOString() });
     });
 
-    // Lock / unlock meeting live toggle
-    socket.on("host-toggle-lock", async ({ meetingCode, isLocked }) => {
-      await Meeting.findOneAndUpdate({ meetingCode }, { isLocked });
-      io.to(meetingCode).emit("meeting-lock-changed", { isLocked });
+    socket.on("recording-status", ({ isRecording } = {}) => {
+      if (socket.isMod && inRoom()) io.to(socket.meetingCode).emit("recording-status", { isRecording: !!isRecording });
     });
 
-    // ---------- SCREEN SHARE (respects permission) ----------
-    socket.on("screen-share-start", async ({ meetingCode, name }) => {
-      const meeting = await Meeting.findOne({ meetingCode });
-      if (meeting && !meeting.participantPermissions.screenShareAllowed && socket.userRole !== "host") {
-        socket.emit("screenshare-blocked");
-        return;
+    socket.on("share-chapter", async ({ chapterId } = {}) => {
+      if (!socket.isMod || !inRoom()) return;
+      try {
+        const m = await Meeting.findOne({ meetingCode: socket.meetingCode }).select("_id");
+        const ch = await Chapter.findOne({ _id: chapterId, meeting: m._id }).select("title");
+        if (ch) io.to(socket.meetingCode).emit("chapter-shared", { chapterId: String(ch._id), title: ch.title });
+      } catch (e) { /* invalid id */ }
+    });
+
+    // ================= SCREEN SHARE =================
+    socket.on("screen-share-start", () => {
+      if (!inRoom()) return;
+      if (!socket.isMod && meta[socket.meetingCode].shareAllowed === false) return socket.emit("screenshare-blocked");
+      socket.to(socket.meetingCode).emit("screen-share-start", { socketId: socket.id, name: socket.userName });
+    });
+    socket.on("screen-share-stop", () => { if (inRoom()) socket.to(socket.meetingCode).emit("screen-share-stop", { socketId: socket.id }); });
+
+    // ================= LIVE QUESTIONS =================
+    socket.on("host-send-question", async ({ questionText, options, correctIndex } = {}) => {
+      if (!socket.isMod || !inRoom()) return;
+      const code = socket.meetingCode;
+      questionText = clip(questionText, 300);
+      options = (Array.isArray(options) ? options : []).map((o) => clip(o, 120)).filter(Boolean).slice(0, 6);
+      if (!questionText || options.length < 2) return;
+      const ci = Number.isInteger(correctIndex) && correctIndex >= 0 && correctIndex < options.length ? correctIndex : undefined;
+      try {
+        const doc = await Meeting.findOneAndUpdate(
+          { meetingCode: code },
+          { $push: { questions: { questionText, options, correctOption: ci } } },
+          { new: true }
+        );
+        const q = doc.questions[doc.questions.length - 1];
+        io.to(code).emit("new-question", { questionId: String(q._id), questionText, options });
+      } catch (e) { console.error("question:", e.message); }
+    });
+
+    socket.on("participant-answer", async ({ questionId, answer } = {}) => {
+      if (!inRoom() || socket.isMod) return;
+      const code = socket.meetingCode;
+      answer = clip(answer, 200);
+      try {
+        const doc = await Meeting.findOne({ meetingCode: code, "questions._id": questionId }, { "questions.$": 1 });
+        const q = doc && doc.questions[0];
+        if (!q || !q.options.includes(answer)) return;
+        const hasKey = q.correctOption !== undefined && q.correctOption !== null;
+        const isCorrect = hasKey ? q.options[q.correctOption] === answer : undefined;
+
+        const res = await Meeting.updateOne(
+          { meetingCode: code, questions: { $elemMatch: { _id: q._id, "responses.participant": { $ne: socket.userId } } } },
+          { $push: { "questions.$.responses": { participant: socket.userId, participantName: socket.userName, answer, isCorrect } } }
+        );
+        if (!res.modifiedCount) return socket.emit("answer-saved", { questionId, duplicate: true });
+
+        socket.emit("answer-saved", { questionId, answer, isCorrect, correctAnswer: hasKey ? q.options[q.correctOption] : null });
+        const fresh = await Meeting.findOne({ meetingCode: code, "questions._id": q._id }, { "questions.$": 1 });
+        io.to(`mods-${code}`).emit("question-results-update", {
+          questionId: String(q._id),
+          responses: fresh.questions[0].responses.map((r) => ({ name: r.participantName, answer: r.answer, isCorrect: r.isCorrect })),
+        });
+        if (attendanceLog[socket.id]) Attendance.findByIdAndUpdate(attendanceLog[socket.id], { $inc: { questionsAnswered: 1 } }).catch(() => {});
+      } catch (e) { console.error("answer:", e.message); }
+    });
+
+    // ================= WHITEBOARD (teacher draws, everyone sees) =================
+    const pt = (p) => ({ x: num(p && p.x, 0, 1, 0), y: num(p && p.y, 0, 1, 0) });
+    socket.on("wb-draw", (d = {}) => {
+      if (socket.isMod && inRoom()) socket.to(socket.meetingCode).emit("wb-draw", { a: pt(d.a), b: pt(d.b), c: clip(d.c, 9), w: num(d.w, 1, 40, 4) });
+    });
+    socket.on("wb-clear", () => { if (socket.isMod && inRoom()) socket.to(socket.meetingCode).emit("wb-clear"); });
+    socket.on("wb-visibility", ({ open } = {}) => { if (socket.isMod && inRoom()) io.to(socket.meetingCode).emit("wb-visibility", { open: !!open }); });
+
+    // ================= END / LEAVE =================
+    socket.on("host-end-meeting", async () => {
+      if (!socket.isMod || !socket.meetingCode) return;
+      const code = socket.meetingCode;
+      try { await Meeting.updateOne({ meetingCode: code }, { status: "ended", endedAt: new Date() }); } catch (e) {}
+      io.to(code).emit("meeting-ended");
+      io.to(`waiting-${code}`).emit("meeting-ended");
+      delete rooms[code]; delete waiting[code]; delete admitted[code]; delete removed[code]; delete meta[code];
+    });
+
+    async function leave() {
+      const code = socket.meetingCode;
+      if (!code) return;
+      socket.meetingCode = null;
+
+      if (rooms[code] && rooms[code][socket.id]) {
+        const name = rooms[code][socket.id].name;
+        delete rooms[code][socket.id];
+        io.to(code).emit("participants-update", listRoom(code));
+        socket.to(code).emit("user-left", { socketId: socket.id });
+        system(code, `${name} left`);
       }
-      socket.to(meetingCode).emit("screen-share-start", { socketId: socket.id, name });
-    });
-
-    socket.on("screen-share-stop", ({ meetingCode }) => {
-      socket.to(meetingCode).emit("screen-share-stop", { socketId: socket.id });
-    });
-
-    // ---------- QUESTIONS / POLLS ----------
-    socket.on("host-send-question", async ({ meetingCode, questionText, options }) => {
-      const meeting = await Meeting.findOne({ meetingCode });
-      if (meeting) {
-        meeting.questions.push({ questionText, options });
-        await meeting.save();
-        const newQuestion = meeting.questions[meeting.questions.length - 1];
-        io.to(meetingCode).emit("new-question", { questionId: newQuestion._id, questionText, options });
+      if (waiting[code] && waiting[code][socket.id]) {
+        delete waiting[code][socket.id];
+        io.to(`mods-${code}`).emit("waiting-room-update", listWait(code));
       }
-    });
-
-    socket.on("participant-answer", async ({ meetingCode, questionId, answer, userId, name }) => {
-      const meeting = await Meeting.findOne({ meetingCode });
-      if (meeting) {
-        const question = meeting.questions.id(questionId);
-        if (question) {
-          question.responses.push({ participant: userId, participantName: name, answer });
-          await meeting.save();
-          io.to(meetingCode).emit("question-results-update", { questionId, responses: question.responses });
-
-          if (attendanceLog[socket.id]) {
-            await Attendance.findByIdAndUpdate(attendanceLog[socket.id], { $inc: { questionsAnswered: 1 } });
-          }
-        }
+      const id = attendanceLog[socket.id];
+      if (id) {
+        delete attendanceLog[socket.id];
+        try {
+          const rec = await Attendance.findById(id);
+          if (rec) { rec.leftAt = new Date(); rec.durationMinutes = Math.round((rec.leftAt - rec.joinedAt) / 60000); await rec.save(); }
+        } catch (e) {}
       }
-    });
-
-    // ---------- WHITEBOARD ----------
-    socket.on("whiteboard-draw", ({ meetingCode, drawData }) => {
-      socket.to(meetingCode).emit("whiteboard-draw", drawData);
-    });
-
-    socket.on("whiteboard-clear", ({ meetingCode }) => {
-      socket.to(meetingCode).emit("whiteboard-clear");
-    });
-
-    // ---------- RECORDING ----------
-    socket.on("recording-status", ({ meetingCode, isRecording }) => {
-      io.to(meetingCode).emit("recording-status", { isRecording });
-    });
-
-    // ---------- ANNOUNCEMENTS ----------
-    socket.on("host-announcement", ({ meetingCode, message }) => {
-      io.to(meetingCode).emit("announcement", { message, time: new Date().toLocaleTimeString() });
-    });
-
-    // ---------- END MEETING FOR EVERYONE ----------
-    socket.on("host-end-meeting", ({ meetingCode }) => {
-      io.to(meetingCode).emit("meeting-ended-by-host");
-    });
-
-    // ---------- LEAVE / DISCONNECT ----------
-    socket.on("leave-room", () => handleDisconnect(socket, io));
-    socket.on("disconnect", () => handleDisconnect(socket, io));
-  });
-}
-
-// Helper: admit a user into the live room + start attendance tracking
-async function admitUserToRoom(io, socket, meetingCode, userId, name, role) {
-  socket.join(meetingCode);
-  socket.join(`user-${userId}`); // enables targeted notification push
-
-  if (!roomUsers[meetingCode]) roomUsers[meetingCode] = {};
-  roomUsers[meetingCode][socket.id] = { userId, name, role, handRaised: false };
-
-  socket.to(meetingCode).emit("user-joined", { socketId: socket.id, userId, name, role });
-  io.to(meetingCode).emit("participants-update", roomUsers[meetingCode]);
-
-  io.to(meetingCode).emit("chat-message", {
-    system: true,
-    message: `${name} joined the meeting`,
-    time: new Date().toLocaleTimeString(),
-  });
-
-  // Start attendance record
-  try {
-    const meeting = await Meeting.findOne({ meetingCode });
-    if (meeting) {
-      const record = await Attendance.create({
-        meeting: meeting._id,
-        participant: userId,
-        participantName: name,
-      });
-      attendanceLog[socket.id] = record._id;
     }
-  } catch (e) {
-    console.error("Attendance start error:", e.message);
-  }
-}
-
-async function handleDisconnect(socket, io) {
-  const { meetingCode, userName } = socket;
-  if (!meetingCode) return;
-
-  if (roomUsers[meetingCode]) {
-    delete roomUsers[meetingCode][socket.id];
-    io.to(meetingCode).emit("participants-update", roomUsers[meetingCode]);
-  }
-  if (waitingUsers[meetingCode]) {
-    delete waitingUsers[meetingCode][socket.id];
-    io.to(meetingCode).emit("waiting-room-update", Object.values(waitingUsers[meetingCode] || {}));
-  }
-
-  socket.to(meetingCode).emit("user-left", { socketId: socket.id });
-  io.to(meetingCode).emit("chat-message", {
-    system: true,
-    message: `${userName || "A participant"} left the meeting`,
-    time: new Date().toLocaleTimeString(),
+    socket.on("leave-room", leave);
+    socket.on("disconnect", leave);
   });
-
-  // Close attendance record
-  if (attendanceLog[socket.id]) {
-    try {
-      const record = await Attendance.findById(attendanceLog[socket.id]);
-      if (record) {
-        record.leftAt = new Date();
-        record.durationMinutes = Math.round((record.leftAt - record.joinedAt) / 60000);
-        await record.save();
-      }
-    } catch (e) {
-      console.error("Attendance close error:", e.message);
-    }
-    delete attendanceLog[socket.id];
-  }
-
-  console.log("❌ Socket disconnected:", socket.id);
 }
 
 module.exports = initMeetingSocket;

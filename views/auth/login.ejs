@@ -1,70 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-  <title>Login — EduLive</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/theme.css" />
-  <link rel="stylesheet" href="/css/animations.css" />
-  <link rel="stylesheet" href="/css/responsive.css" />
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <title>Sign in · EduLive</title>
+  <%- include('../partials/head') %>
 </head>
-<!-- NEW -->
-<body class="relative min-h-screen flex items-center justify-center px-4 sm:px-6 py-8 form-page-padding">
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
-  <div class="blob blob-3"></div>
+<body>
+  <% const copy = {
+    student:{ title:"Student sign in", sub:"Join live classes, take quizzes and see your marks.", icon:"graduation-cap", big:"Learn live.<br/>Know your score." },
+    teacher:{ title:"Teacher sign in", sub:"Host classes, send questions and grade in real time.", icon:"presentation", big:"Run your class.<br/>See every answer." },
+    admin:{ title:"Admin sign in", sub:"Platform control panel.", icon:"shield-check", big:"Full platform<br/>control." }
+  }[portal]; %>
+  <div class="blob blob-1"></div><div class="blob blob-2"></div>
 
-  <div id="loginCard" class="glass-card card-3d p-10 max-w-md w-full relative z-10">
-    <div class="text-center mb-8">
-      <span class="gradient-text text-2xl font-bold">🎓 EduLive</span>
-      <h2 class="text-white text-2xl font-bold mt-4">Welcome Back</h2>
-      <p class="text-gray-400 text-sm mt-1">Login to continue to your dashboard</p>
-    </div>
-
-    <% if (typeof blocked !== "undefined" && blocked) { %>
-      <div class="bg-red-500/20 border border-red-500 text-red-300 px-4 py-2 rounded-lg mb-4 text-sm text-center">
-        Your account has been blocked by the admin.
+  <main class="relative z-10 min-h-screen grid lg:grid-cols-2">
+    <section class="hidden lg:flex flex-col justify-between p-12">
+      <a href="/" class="flex items-center gap-2 font-display font-bold text-xl"><span class="logo-mark">E</span> EduLive</a>
+      <div data-reveal>
+        <h1 class="text-5xl font-extrabold leading-tight mb-5"><span class="gradient-text"><%- copy.big %></span></h1>
+        <p class="text-gray-400 max-w-md"><%= copy.sub %></p>
+        <div class="mt-8 space-y-3 text-sm text-gray-300">
+          <div class="flex items-center gap-3"><i data-lucide="check-circle-2" class="w-4 h-4" style="color:var(--accent)"></i> Secure, role-based access</div>
+          <div class="flex items-center gap-3"><i data-lucide="check-circle-2" class="w-4 h-4" style="color:var(--accent)"></i> Instant notifications when class starts</div>
+          <div class="flex items-center gap-3"><i data-lucide="check-circle-2" class="w-4 h-4" style="color:var(--accent)"></i> Marks visible the moment they're awarded</div>
+        </div>
       </div>
-    <% } %>
+      <p class="text-xs text-gray-500">© 2026 EduLive</p>
+    </section>
 
-    <% if (error) { %>
-      <div class="bg-red-500/20 border border-red-500 text-red-300 px-4 py-2 rounded-lg mb-4 text-sm text-center">
-        <%= error %>
+    <section class="flex items-center justify-center p-5 sm:p-10">
+      <div class="glass-card w-full max-w-md p-7 sm:p-9" data-reveal>
+        <a href="/" class="lg:hidden flex items-center gap-2 font-display font-bold text-lg mb-6"><span class="logo-mark">E</span> EduLive</a>
+
+        <% if (portal !== 'admin') { %>
+          <div class="grid grid-cols-3 gap-1 p-1 rounded-2xl mb-7" style="background:rgba(255,255,255,.05);border:1px solid var(--line)">
+             <a href="/auth/login?portal=student" class="text-center text-xs sm:text-sm py-2.5 rounded-xl <%= portal==='student' ? 'btn-glow' : 'text-gray-400' %>">🎓 Student</a>
+              <a href="/auth/login?portal=teacher" class="text-center text-xs sm:text-sm py-2.5 rounded-xl <%= portal==='teacher' ? 'btn-glow' : 'text-gray-400' %>">🧑‍🏫 Teacher</a>
+              <a href="/auth/login?portal=admin" class="text-center text-xs sm:text-sm py-2.5 rounded-xl <%= portal==='admin' ? 'btn-glow' : 'text-gray-400' %>">🛡️ Admin</a>
+          </div>
+        <% } %>
+
+        <div class="icon-box mb-4"><i data-lucide="<%= copy.icon %>" class="w-5 h-5"></i></div>
+        <h2 class="text-2xl font-bold"><%= copy.title %></h2>
+        <p class="text-gray-400 text-sm mt-1 mb-6"><%= copy.sub %></p>
+
+        <% if (typeof blocked !== "undefined" && blocked) { %>
+          <div class="rounded-xl px-4 py-3 mb-4 text-sm" style="background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.4);color:#fda4af">Your account has been blocked by the admin.</div>
+        <% } %>
+        <% if (error) { %>
+          <div class="rounded-xl px-4 py-3 mb-4 text-sm" style="background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.4);color:#fda4af"><%= error %></div>
+        <% } %>
+
+        <form action="/auth/login" method="POST" class="space-y-4">
+          <input type="hidden" name="portal" value="<%= portal %>" />
+          <div>
+            <label class="text-xs text-gray-400 mb-1.5 block">Email</label>
+            <input type="email" name="email" required autocomplete="email" placeholder="you@example.com" class="w-full px-4 py-3" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 mb-1.5 block">Password</label>
+            <div class="relative">
+              <input id="loginPass" type="password" name="password" required autocomplete="current-password" placeholder="••••••••" class="w-full px-4 py-3 pr-12" />
+              <button type="button" data-toggle-pass="loginPass" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white" aria-label="Show password"><i data-lucide="eye" class="w-4 h-4"></i></button>
+            </div>
+          </div>
+          <div class="text-right"><a href="/auth/forgot-password" class="text-xs" style="color:var(--accent)">Forgot password?</a></div>
+          <button type="submit" class="btn-glow w-full py-3.5">Sign in <i data-lucide="arrow-right" class="w-4 h-4"></i></button>
+        </form>
+        
+        <% if (portal !== 'admin') { %>
+         <p class="text-center text-sm text-gray-400 mt-6">New here? <a href="/auth/register?portal=<%= portal %>" style="color:var(--accent)" class="font-medium">Create a <%= portal %> account</a></p>
+          <% } else { %>
+          <p class="text-center text-xs text-gray-500 mt-6">Admin accounts are created by the platform owner and cannot self-register.</p>
+          <% } %>
+        
       </div>
-    <% } %>
-
-    <form action="/auth/login" method="POST" class="space-y-4">
-      <div>
-        <label class="text-gray-300 text-xs mb-1 block">Email</label>
-        <input type="email" name="email" required placeholder="you@example.com"
-          class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" />
-      </div>
-      <div>
-        <label class="text-gray-300 text-xs mb-1 block">Password</label>
-        <input type="password" name="password" required placeholder="••••••••"
-          class="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" />
-      </div>
-
-      <div class="flex justify-end">
-        <a href="/auth/forgot-password" class="text-indigo-300 text-xs hover:text-indigo-200">Forgot Password?</a>
-      </div>
-
-      <button type="submit" class="btn-glow w-full text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2">
-        <i data-lucide="log-in" class="w-4 h-4"></i> Login
-      </button>
-    </form>
-
-    <p class="text-center text-gray-400 text-sm mt-6">
-      Don't have an account? <a href="/auth/register" class="text-indigo-300 hover:text-indigo-200 font-medium">Register</a>
-    </p>
-  </div>
-
-  <script>
-    lucide.createIcons();
-    gsap.from("#loginCard", { opacity: 0, y: 30, duration: 0.7, ease: "power3.out" });
-  </script>
+    </section>
+  </main>
+  <%- include('../partials/foot') %>
 </body>
 </html>

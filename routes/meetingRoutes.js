@@ -182,6 +182,11 @@ router.get("/room/:code", isAuthenticated, async (req, res) => {
 
   const isHost = String(meeting.host._id) === String(req.session.user._id);
 
+  if (!isHost && req.session.user.role !== "admin" &&
+      !meeting.participants.some((p) => String(p) === String(req.session.user._id))) {
+    return res.redirect(`/meeting/${meeting.meetingCode}`);
+  }
+
   // ⭐ MEETING GOES LIVE — broadcast to every relevant registered participant
   if (isHost && meeting.status === "scheduled") {
     meeting.status = "live";
@@ -246,6 +251,17 @@ router.post("/:code/end", isAuthenticated, async (req, res) => {
   await meeting.save();
 
   res.redirect("/host/dashboard");
+});
+
+// Host (or admin) deletes a meeting and its materials
+router.post("/:code/delete", isAuthenticated, async (req, res) => {
+  const meeting = await Meeting.findOne({ meetingCode: req.params.code.toUpperCase() });
+  if (!meeting) return res.redirect("/host/meetings");
+  const owner = String(meeting.host) === String(req.session.user._id);
+  if (!owner && req.session.user.role !== "admin") return res.status(403).send("Not allowed");
+  await require("../models/Chapter").deleteMany({ meeting: meeting._id });
+  await meeting.deleteOne();
+  res.redirect(req.session.user.role === "admin" ? "/admin/meetings" : "/host/meetings");
 });
 
 module.exports = router;

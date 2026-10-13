@@ -1,65 +1,65 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-  <title>Manage Users — Admin</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/theme.css" />
-  <link rel="stylesheet" href="/css/animations.css" />
-  <link rel="stylesheet" href="/css/responsive.css" />
-  <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-<body class="relative min-h-screen">
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
+<%- include('../partials/shell-top', { role: 'admin', active: 'users', title: 'Users' }) %>
+<% const cnt = r => users.filter(u => u.role === r).length; %>
+<div class="page-head">
+  <div><span class="badge b-accent">Manage</span><h2>Users</h2><p class="muted"><%= users.length %> accounts · block, promote or remove anyone.</p></div>
+  <a class="btn btn-soft" href="/admin/users/export"><i data-lucide="download"></i> Export CSV</a>
+</div>
 
-  <%- include('../partials/sidebar', { role: 'admin', active: 'students' }) %>
+<% if (typeof msg !== 'undefined' && msg) { %><div class="alert ok mb"><%= msg %></div><% } %>
+<% if (typeof err !== 'undefined' && err) { %><div class="alert err mb"><%= err %></div><% } %>
 
-  <main class="ml-64 p-8 relative z-10 page-fade-in">
-    <h1 class="text-white text-3xl font-bold mb-6">👥 Manage Users</h1>
-
-    <div class="glass-card overflow-hidden">
-      <table class="responsive-table w-full text-left text-sm">
-        <thead class="bg-white/10 text-gray-300">
-          <tr>
-            <th class="p-4">Name</th>
-            <th class="p-4">Email</th>
-            <th class="p-4">Role</th>
-            <th class="p-4">Status</th>
-            <th class="p-4">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="text-white">
-          <% users.forEach(u => { %>
-            <tr class="border-t border-white/10">
-              <td class="p-4" data-label="Name"><%= u.name %></td>
-              <td class="p-4 text-gray-400" data-label="Email"><%= u.email %></td>
-              <td class="p-4 capitalize" data-label="Role"><%= u.role %></td>
-              <td class="p-4" data-label="Status">
-                <% if (u.isBlocked) { %>
-                  <span class="bg-red-500/20 text-red-400 text-xs px-3 py-1 rounded-full">Blocked</span>
-                <% } else { %>
-                  <span class="bg-green-500/20 text-green-400 text-xs px-3 py-1 rounded-full">Active</span>
-                <% } %>
-              </td>
-              <td class="p-4 flex gap-2 justify-end md:justify-start" data-label="Actions">
-                <form action="/admin/users/<%= u._id %>/toggle-block" method="POST">
-                  <button class="text-xs px-3 py-1.5 rounded-lg <%= u.isBlocked ? 'bg-green-600 hover:bg-green-500' : 'bg-yellow-600 hover:bg-yellow-500' %> text-white transition">
-                    <%= u.isBlocked ? "Unblock" : "Block" %>
-                  </button>
-                </form>
-                <form action="/admin/users/<%= u._id %>/delete" method="POST" onsubmit="return confirm('Delete this user permanently?')">
-                  <button class="text-xs px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white transition">Delete</button>
-                </form>
-              </td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
+<details class="card mb">
+  <summary class="strong" style="cursor:pointer;list-style:none"><i data-lucide="user-plus"></i> Add a user (student, teacher or admin)</summary>
+  <form action="/admin/users/create" method="POST" class="mt">
+    <div class="form-grid">
+      <div class="field"><label>Full name</label><input class="input" name="name" required /></div>
+      <div class="field"><label>Email</label><input class="input" type="email" name="email" required /></div>
+      <div class="field"><label>Password</label><input class="input" type="password" name="password" minlength="6" required autocomplete="new-password" /></div>
+      <div class="field"><label>Role</label>
+        <select class="select" name="role"><option value="participant">Student</option><option value="host">Teacher</option><option value="admin">Admin</option></select></div>
     </div>
-  </main>
+    <button class="btn btn-primary mt"><i data-lucide="plus"></i> Create account</button>
+  </form>
+</details>
 
-  <script>lucide.createIcons();</script>
-</body>
-</html>
+<div class="toolbar">
+  <div class="searchbox"><i data-lucide="search"></i><input class="input" data-search-for="#uList" placeholder="Search name or email…" /></div>
+  <div class="tabs" data-filter-for="#uList">
+    <button class="on" data-f="all">All <%= users.length %></button><button data-f="participant">Students <%= cnt('participant') %></button>
+    <button data-f="host">Teachers <%= cnt('host') %></button><button data-f="admin">Admins <%= cnt('admin') %></button><button data-f="blocked">Blocked</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap"><table class="tbl">
+    <thead><tr><th>User</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+    <tbody id="uList" data-list>
+      <% users.forEach(u => { const me = String(u._id) === String(user._id); %>
+        <tr data-item data-status="<%= u.role %><%= u.isBlocked ? ' blocked' : '' %>">
+          <td><div class="row"><span class="avatar"><%= (u.name || '?').slice(0, 1).toUpperCase() %></span><div><b><%= u.name %><%= me ? ' (you)' : '' %></b><div class="muted small"><%= u.email %></div></div></div></td>
+          <td>
+            <% if (me) { %><span class="badge b-accent">admin</span>
+            <% } else { %>
+              <form action="/admin/users/<%= u._id %>/role" method="POST"><select class="select input sm" name="role" style="width:130px" onchange="this.form.submit()">
+                <option value="participant" <%= u.role === 'participant' ? 'selected' : '' %>>Student</option>
+                <option value="host" <%= u.role === 'host' ? 'selected' : '' %>>Teacher</option>
+                <option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>Admin</option></select></form>
+            <% } %>
+          </td>
+          <td><span class="badge <%= u.isBlocked ? 'b-red' : 'b-green' %>"><%= u.isBlocked ? 'Blocked' : 'Active' %></span></td>
+          <td class="muted small"><%= new Date(u.createdAt).toLocaleDateString() %></td>
+          <td class="right">
+            <% if (!me) { %>
+              <div class="row gap-s" style="justify-content:flex-end">
+                <form action="/admin/users/<%= u._id %>/toggle-block" method="POST"><button class="btn btn-sm <%= u.isBlocked ? 'btn-soft' : 'btn-ghost' %>"><i data-lucide="<%= u.isBlocked ? 'unlock' : 'ban' %>"></i> <%= u.isBlocked ? 'Unblock' : 'Block' %></button></form>
+                <form action="/admin/users/<%= u._id %>/delete" method="POST" data-confirm="Delete <%= u.name %> permanently?"><button class="btn btn-danger btn-sm"><i data-lucide="trash-2"></i></button></form>
+              </div>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table></div>
+  <div class="empty" data-empty-for="#uList" <%= users.length ? 'hidden' : '' %>><div class="ico"><i data-lucide="users"></i></div>No users match.</div>
+</div>
+<%- include('../partials/shell-bottom') %>

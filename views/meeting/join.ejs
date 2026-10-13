@@ -1,72 +1,63 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="js" data-role="<%= user.role %>">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Join Meeting</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/theme.css" />
-  <link rel="stylesheet" href="/css/animations.css" />
-  <link rel="stylesheet" href="/css/responsive.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <style>
-    /* ⭐ FALLBACK — guarantees a dark themed background even if Tailwind CDN fails to load */
-    body {
-      background: #05060f;
-      background: linear-gradient(135deg, #1e1b4b 0%, #0f0a2e 50%, #05060f 100%);
-      min-height: 100vh;
-      font-family: 'Poppins', sans-serif;
-      color: #f1f5f9;
-      margin: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-  </style>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Join <%= meeting.title %> · EduLive</title>
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 min-h-screen flex items-center justify-center px-6 form-page-padding">
+<body>
+  <div class="center-screen">
+    <div class="card" style="max-width:880px;width:100%;padding:0;overflow:hidden">
+      <div class="grid g2" style="gap:0">
+        <div style="padding:30px">
+          <div class="row"><span class="logo">E</span><b style="font-size:17px">EduLive</b></div>
+          <div class="mt">
+            <% if (meeting.status === 'live') { %><span class="badge b-red"><span class="live-dot"></span> Live now</span><% } else { %><span class="badge b-amber">Not started yet</span><% } %>
+            <h2 style="font-size:26px;font-weight:800;margin:12px 0 4px"><%= meeting.title %></h2>
+            <p class="muted"><%= meeting.chapterName || 'Live class' %></p>
+            <% if (meeting.description) { %><p class="muted small mt-s"><%= meeting.description %></p><% } %>
+          </div>
+          <div class="item mt"><span class="avatar"><%= (meeting.host.name || 'T').slice(0, 1).toUpperCase() %></span><div class="grow"><b><%= meeting.host.name %></b><div class="muted small">Teacher</div></div></div>
+          <p class="muted small mt-s">Joining as <b style="color:var(--text)"><%= user.name %></b></p>
 
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
+          <% if (typeof error !== 'undefined' && error) { %><div class="alert err mt"><%= error %></div><% } %>
 
-  <div id="joinCard" class="glass-card p-10 max-w-md w-full text-center shadow-2xl relative z-10"
-       style="background: rgba(255,255,255,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px;">
+          <form id="joinForm" action="/meeting/<%= meeting.meetingCode %>/join" method="POST" class="mt">
+            <% if (meeting.meetingPassword) { %>
+              <div class="field"><label>Meeting password</label><input class="input" type="password" name="password" required autocomplete="off" /></div>
+            <% } %>
+            <button class="btn btn-primary btn-block"><i data-lucide="log-in"></i> Join class</button>
+          </form>
+          <p class="center mt-s"><a class="link" href="/<%= user.role === 'host' ? 'host' : 'participant' %>/dashboard">← Back to dashboard</a></p>
+        </div>
 
-    <h2 class="text-white text-2xl font-bold mb-1" style="color: #fff;"><%= meeting.title %></h2>
-    <p class="text-gray-400 mb-1" style="color: #94a3b8;">Chapter: <%= meeting.chapterName %></p>
-    <p class="text-gray-500 text-sm mb-6" style="color: #64748b;">Hosted by <%= meeting.host.name %></p>
-
-    <% if (typeof error !== "undefined" && error) { %>
-      <div class="px-4 py-2 rounded-lg mb-4 text-sm"
-           style="background: rgba(239,68,68,0.2); border: 1px solid #ef4444; color: #fca5a5;">
-        <%= error %>
+        <div style="padding:30px;background:var(--surface2);display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center">
+          <div style="width:100%;aspect-ratio:16/10;border-radius:18px;overflow:hidden;background:#05070f;position:relative">
+            <video id="pv" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>
+            <div id="pvEmpty" style="position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);text-align:center;padding:12px"><div><i data-lucide="video-off" style="width:30px;height:30px"></i><p class="small mt-s">Camera preview is off</p></div></div>
+          </div>
+          <button type="button" class="btn btn-soft" id="pvBtn"><i data-lucide="camera"></i> Test camera &amp; mic</button>
+          <p class="muted small center" id="pvMsg">Check how you look and sound before joining.</p>
+        </div>
       </div>
-    <% } %>
-
-    <form action="/meeting/<%= meeting.meetingCode %>/join" method="POST" class="space-y-4">
-      <% if (meeting.meetingPassword) { %>
-        <input type="password" name="password" placeholder="Meeting Password" required
-          class="w-full rounded-xl px-4 py-3 focus:outline-none"
-          style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff;" />
-      <% } %>
-
-      <button type="submit" class="w-full text-white py-3 rounded-xl font-semibold"
-        style="background: linear-gradient(135deg, #818cf8, #c084fc); border: none; cursor: pointer;">
-        Join Meeting
-      </button>
-    </form>
-
-    <p class="mt-6 text-sm" style="color: #94a3b8;">
-      <a href="/<%= user.role %>/dashboard" style="color: #a5b4fc;">← Back to Dashboard</a>
-    </p>
+    </div>
   </div>
-
   <script>
-    if (typeof gsap !== "undefined") {
-      gsap.from("#joinCard", { opacity: 0, scale: 0.9, duration: 0.7, ease: "back.out(1.7)" });
-    }
+    lucide.createIcons();
+    var stream = null;
+    document.getElementById('pvBtn').onclick = function () {
+      navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(function (s) {
+        stream = s; document.getElementById('pv').srcObject = s;
+        document.getElementById('pvEmpty').style.display = 'none';
+        document.getElementById('pvMsg').textContent = 'Looks good! Camera and mic are working ✔';
+      }).catch(function () {
+        document.getElementById('pvMsg').textContent = window.isSecureContext ? 'Camera/mic blocked. Allow access from the padlock icon.' : 'Open the https:// link to use camera and mic.';
+      });
+    };
+    document.getElementById('joinForm').addEventListener('submit', function () { if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); });
   </script>
 </body>
 </html>

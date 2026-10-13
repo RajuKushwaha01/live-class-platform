@@ -1,0 +1,38 @@
+<%- include('../partials/shell-top', { role: 'admin', active: 'meetings', title: 'Meetings' }) %>
+<div class="page-head">
+  <div><span class="badge b-accent">Manage</span><h2>All meetings</h2><p class="muted">Complete meeting history across every teacher.</p></div>
+  <a class="btn btn-soft" href="/admin/meetings/export"><i data-lucide="download"></i> Export CSV</a>
+</div>
+
+<div class="toolbar">
+  <div class="searchbox"><i data-lucide="search"></i><input class="input" data-search-for="#amList" placeholder="Search title, code or host…" /></div>
+  <div class="tabs" data-filter-for="#amList"><button class="on" data-f="all">All</button><button data-f="live">Live</button><button data-f="scheduled">Scheduled</button><button data-f="ended">Ended</button></div>
+</div>
+
+<div class="card">
+  <div class="table-wrap"><table class="tbl">
+    <thead><tr><th>Meeting</th><th>Host</th><th>Status</th><th>Joined</th><th>Duration</th><th></th></tr></thead>
+    <tbody id="amList" data-list>
+      <% meetings.forEach(m => {
+        const mins = (m.startedAt && m.endedAt) ? Math.max(1, Math.round((new Date(m.endedAt) - new Date(m.startedAt)) / 60000)) : null;
+      %>
+        <tr data-item data-status="<%= m.status %>">
+          <td><b><%= m.title %></b><div class="muted small mono"><%= m.meetingCode %></div></td>
+          <td><%= m.host ? m.host.name : '—' %></td>
+          <td><% if (m.status === 'live') { %><span class="badge b-red"><span class="live-dot"></span>Live</span><% } else { %><span class="badge <%= m.status === 'scheduled' ? 'b-amber' : '' %>"><%= m.status %></span><% } %></td>
+          <td><%= m.participants.length %></td>
+          <td><%= mins ? mins + ' min' : '—' %></td>
+          <td class="right"><div class="row gap-s" style="justify-content:flex-end">
+            <% if (m.status === 'live') { %>
+              <a class="btn btn-ghost btn-sm" href="/meeting/room/<%= m.meetingCode %>">Monitor</a>
+              <form action="/admin/meetings/<%= m.meetingCode %>/end" method="POST" data-confirm="End this live meeting for everyone?"><button class="btn btn-danger btn-sm">End</button></form>
+            <% } %>
+            <form action="/meeting/<%= m.meetingCode %>/delete" method="POST" data-confirm="Delete this meeting permanently?"><button class="btn btn-danger btn-sm"><i data-lucide="trash-2"></i></button></form>
+          </div></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table></div>
+  <div class="empty" data-empty-for="#amList" <%= meetings.length ? 'hidden' : '' %>><div class="ico"><i data-lucide="video-off"></i></div>No meetings found.</div>
+</div>
+<%- include('../partials/shell-bottom') %>

@@ -1,0 +1,34 @@
+<%- include('../partials/shell-top', { role: 'participant', active: 'leaderboard', title: 'Leaderboard' }) %>
+<% const top = board.slice(0, 3); const medals = ['🥇', '🥈', '🥉']; const order = [1, 0, 2]; %>
+<div class="page-head"><div><span class="badge b-accent">Rankings</span><h2>Class leaderboard</h2><p class="muted">Ranked by average score across graded tasks.</p></div></div>
+
+<% if (top.length) { %>
+  <div class="podium reveal">
+    <% order.forEach(i => { const p = top[i]; if (!p) return; %>
+      <div class="pod <%= i === 0 ? 'p1' : '' %>">
+        <div class="medal"><%= medals[i] %></div><b><%= p.name %><%= p.id === me ? ' (You)' : '' %></b>
+        <div style="font-size:26px;font-weight:800"><%= p.avg %>%</div>
+        <div class="small" style="opacity:.8"><%= p.pts %> pts · <%= p.tasks %> tasks</div>
+      </div>
+    <% }) %>
+  </div>
+
+  <div class="card reveal">
+    <div class="table-wrap"><table class="tbl">
+      <thead><tr><th>Rank</th><th>Student</th><th>Average</th><th>Points</th><th>Tasks</th></tr></thead>
+      <tbody>
+        <% board.forEach((b, i) => { %>
+          <tr style="<%= b.id === me ? 'background:var(--a-soft)' : '' %>">
+            <td><b>#<%= i + 1 %></b></td>
+            <td><div class="row"><span class="avatar" style="width:32px;height:32px;border-radius:10px"><%= (b.name || '?').slice(0, 1).toUpperCase() %></span><b><%= b.name %></b><% if (b.id === me) { %><span class="badge b-accent">You</span><% } %></div></td>
+            <td style="min-width:160px"><div class="row"><div class="progress grow"><i style="width:<%= b.avg %>%"></i></div><b><%= b.avg %>%</b></div></td>
+            <td><%= b.pts %>/<%= b.max %></td><td><%= b.tasks %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table></div>
+  </div>
+<% } else { %>
+  <div class="card empty"><div class="ico"><i data-lucide="trophy"></i></div>No graded tasks yet. Complete a task to see the rankings.</div>
+<% } %>
+<%- include('../partials/shell-bottom') %>

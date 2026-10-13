@@ -29,8 +29,8 @@ const submissionSchema = new mongoose.Schema({
   answers: [submissionAnswerSchema],
   totalScore: { type: Number, default: 0 },
   maxScore: { type: Number, default: 0 },
-  isGraded: { type: Boolean, default: true }, // ⭐ NEW — false while awaiting manual review
-  gradedAt: Date,                              // ⭐ NEW
+  isGraded: { type: Boolean, default: true },
+  gradedAt: Date,
   submittedAt: { type: Date, default: Date.now },
   fileUpload: String,
 });

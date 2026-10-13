@@ -1,74 +1,69 @@
 const express = require("express");
 const router = express.Router();
 const Assignment = require("../models/Assignment");
-const Notification = require("../models/Notification");
 const Meeting = require("../models/Meeting");
+const Notification = require("../models/Notification");
 const { isAuthenticated, authorizeRoles } = require("../middleware/auth");
 const { uploadAssignmentFile, uploadQuestionAssets } = require("../middleware/upload");
 
-// GET Create Assignment Form
-router.get("/create/:meetingCode?", isAuthenticated, authorizeRoles("host", "admin"), (req, res) => {
+const findMine = (assignment, userId) =>
+  assignment.submissions.find((s) => String(s.participant) === String(userId));
+
+// ---------- HOST: create form ----------
+router.get("/create/:meetingCode?", isAuthenticated, authorizeRoles("host", "admin"), async (req, res) => {
+  const meetings = await Meeting.find({ host: req.session.user._id }).sort({ createdAt: -1 }).select("title meetingCode");
+  const pre = req.params.meetingCode ? meetings.find((m) => m.meetingCode === req.params.meetingCode) : null;
   res.render("host/create-assignment", {
     user: req.session.user,
-    meetingCode: req.params.meetingCode || null,
+    meetings,
+    selectedId: pre ? String(pre._id) : "",
     error: null,
   });
 });
 
-// POST Create Assignment — Handles type validation, image uploads & participant notifications
+// ---------- HOST: create ----------
 router.post("/create", isAuthenticated, authorizeRoles("host", "admin"), uploadQuestionAssets, async (req, res) => {
   try {
     const { title, type, description, dueDate, meetingId, questionsData } = req.body;
-    let questions = JSON.parse(questionsData);
+    const questions = JSON.parse(questionsData);
 
-    // Map uploaded files onto their questions using field-name convention
     (req.files || []).forEach((file) => {
-      const qImgMatch = file.fieldname.match(/^q(\d+)_image$/);
-      const optImgMatch = file.fieldname.match(/^q(\d+)_option(\d+)_image$/);
+      const qImg = file.fieldname.match(/^q(\d+)_image$/);
+      const oImg = file.fieldname.match(/^q(\d+)_option(\d+)_image$/);
       const filePath = `/uploads/questions/${file.filename}`;
-
-      if (qImgMatch) {
-        const qi = Number(qImgMatch[1]);
-        if (questions[qi]) questions[qi].questionImage = filePath;
-      } else if (optImgMatch) {
-        const qi = Number(optImgMatch[1]);
-        const oi = Number(optImgMatch[2]);
-        if (questions[qi]) {
-          questions[qi].optionImages = questions[qi].optionImages || [];
-          questions[qi].optionImages[oi] = filePath;
-        }
+      if (qImg && questions[Number(qImg[1])]) questions[Number(qImg[1])].questionImage = filePath;
+      if (oImg && questions[Number(oImg[1])]) {
+        const q = questions[Number(oImg[1])];
+        q.optionImages = q.optionImages || [];
+        q.optionImages[Number(oImg[2])] = filePath;
       }
     });
 
-    // Type validation
     for (const q of questions) {
-      if (q.type === "mcq" && (!q.options || q.options.filter(Boolean).length !== 4)) {
+      if (q.type === "mcq" && (!q.options || q.options.filter(Boolean).length !== 4))
         throw new Error("Every MCQ question needs exactly 4 options.");
-      }
       if (q.type === "true_false") q.options = ["True", "False"];
     }
 
     const assignment = await Assignment.create({
       meeting: meetingId || null,
       host: req.session.user._id,
-      title,
-      type,
-      description,
-      dueDate,
+      title, type, description,
+      dueDate: dueDate || undefined,
       questions,
       status: "published",
     });
 
-    // 🔔 Notify participants
+    // Who gets notified
     let recipientIds = [];
     if (meetingId) {
       const m = await Meeting.findById(meetingId).select("participants");
       recipientIds = m ? m.participants : [];
     } else {
       const meetings = await Meeting.find({ host: req.session.user._id }).select("participants");
-      const idSet = new Set();
-      meetings.forEach((m) => m.participants.forEach((p) => idSet.add(String(p))));
-      recipientIds = [...idSet];
+      const set = new Set();
+      meetings.forEach((m) => m.participants.forEach((p) => set.add(String(p))));
+      recipientIds = [...set];
     }
 
     if (recipientIds.length) {
@@ -96,36 +91,32 @@ router.post("/create", isAuthenticated, authorizeRoles("host", "admin"), uploadQ
     res.redirect(`/assignment/results/${assignment._id}`);
   } catch (err) {
     console.error(err);
-    res.render("host/create-assignment", {
-      user: req.session.user,
-      meetingCode: null,
-      error: err.message || "Failed to create assignment.",
-    });
+    const meetings = await Meeting.find({ host: req.session.user._id }).select("title meetingCode");
+    res.render("host/create-assignment", { user: req.session.user, meetings, selectedId: "", error: err.message || "Failed to create assignment." });
   }
 });
 
-// Participant: List assignments
+// ---------- STUDENT: list ----------
 router.get("/my-assignments", isAuthenticated, authorizeRoles("participant", "admin"), async (req, res) => {
-  const assignments = await Assignment.find({ status: "published" }).sort({ createdAt: -1 });
-
-  // Attach whether current user already submitted
-  const withStatus = assignments.map((a) => {
-    const submitted = a.submissions.some((s) => String(s.participant) === String(req.session.user._id));
-    return { ...a.toObject(), alreadySubmitted: submitted };
+  const list = await Assignment.find({ status: "published" }).sort({ createdAt: -1 });
+  const assignments = list.map((a) => {
+    const o = a.toObject();
+    const mine = findMine(a, req.session.user._id);
+    o.mine = mine ? { totalScore: mine.totalScore, maxScore: mine.maxScore, isGraded: mine.isGraded } : null;
+    o.state = !mine ? "todo" : mine.isGraded ? "graded" : "review";
+    o.overdue = !mine && !!a.dueDate && new Date(a.dueDate) < new Date();
+    delete o.submissions;
+    return o;
   });
-
-  res.render("participant/assignment-list", { user: req.session.user, assignments: withStatus });
+  res.render("participant/assignment-list", { user: req.session.user, assignments });
 });
 
-// Participant: Take assignment page
+// ---------- STUDENT: open task / see result ----------
 router.get("/take/:id", isAuthenticated, authorizeRoles("participant", "admin"), async (req, res) => {
   const assignment = await Assignment.findById(req.params.id);
   if (!assignment) return res.status(404).send("Assignment not found");
 
-  const mySubmission = assignment.submissions.find(
-    (s) => String(s.participant) === String(req.session.user._id)
-  );
-
+  const mySubmission = findMine(assignment, req.session.user._id);
   res.render("participant/take-assignment", {
     user: req.session.user,
     assignment,
@@ -134,7 +125,7 @@ router.get("/take/:id", isAuthenticated, authorizeRoles("participant", "admin"),
   });
 });
 
-// Participant: Submit assignment (auto-scoring)
+// ---------- STUDENT: submit ----------
 router.post(
   "/submit/:id",
   isAuthenticated,
@@ -145,42 +136,32 @@ router.post(
       const assignment = await Assignment.findById(req.params.id);
       if (!assignment) return res.status(404).send("Assignment not found");
 
-      // Prevent duplicate submission
-      const already = assignment.submissions.find(
-        (s) => String(s.participant) === String(req.session.user._id)
-      );
-      if (already) return res.redirect(`/assignment/take/${req.params.id}`);
+      if (findMine(assignment, req.session.user._id)) {
+        return res.redirect(`/assignment/take/${assignment._id}`);
+      }
 
-      const answers = JSON.parse(req.body.answers); // [{questionIndex, answerText}]
-      let totalScore = 0;
-      let maxScore = 0;
+      let answers = [];
+      try { answers = JSON.parse(req.body.answers || "[]"); } catch { answers = []; }
+      const answerMap = {};
+      answers.forEach((a) => { if (a) answerMap[a.questionIndex] = String(a.answerText ?? ""); });
 
-      const gradedAnswers = answers.map((ans) => {
-        const question = assignment.questions[ans.questionIndex];
-        maxScore += question.points;
+      let totalScore = 0, maxScore = 0, needsManual = false;
 
-        let isCorrect = false;
-        let pointsAwarded = 0;
+      const gradedAnswers = assignment.questions.map((q, i) => {
+        maxScore += q.points || 0;
+        const text = answerMap[i] ?? "";
+        const autoGradable = ["mcq", "true_false", "short_answer"].includes(q.type) && q.correctAnswer;
 
-        // Auto-grade MCQ / True-False / Short Answer (exact match, case-insensitive)
-        if (["mcq", "true_false", "short_answer"].includes(question.type) && question.correctAnswer) {
-          isCorrect =
-            ans.answerText.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
-          pointsAwarded = isCorrect ? question.points : 0;
+        let isCorrect = false, pointsAwarded = 0;
+        if (autoGradable) {
+          isCorrect = text.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase();
+          pointsAwarded = isCorrect ? q.points : 0;
+        } else {
+          needsManual = true;
         }
-
         totalScore += pointsAwarded;
-
-        return {
-          questionIndex: ans.questionIndex,
-          answerText: ans.answerText,
-          isCorrect,
-          pointsAwarded,
-        };
+        return { questionIndex: i, answerText: text, isCorrect, pointsAwarded };
       });
-
-      // Determine if manual review is needed (coding questions can't be auto-graded)
-      const hasCodingQuestion = assignment.questions.some((q) => q.type === "coding");
 
       assignment.submissions.push({
         participant: req.session.user._id,
@@ -188,22 +169,19 @@ router.post(
         answers: gradedAnswers,
         totalScore,
         maxScore,
-        isGraded: !hasCodingQuestion, // auto-graded assignments are "graded" immediately
-        gradedAt: !hasCodingQuestion ? new Date() : null,
+        isGraded: !needsManual,
+        gradedAt: needsManual ? null : new Date(),
         fileUpload: req.file ? `/uploads/assignments/${req.file.filename}` : null,
       });
-
       await assignment.save();
 
-      // 🔔 Notify + live-push to host in real time
       await Notification.create({
         recipient: assignment.host,
         type: "assignment",
         title: "New Submission Received",
-        message: `${req.session.user.name} submitted "${assignment.title}" — ${totalScore}/${maxScore}`,
+        message: `${req.session.user.name} submitted "${assignment.title}"${needsManual ? " — needs grading" : ` — ${totalScore}/${maxScore}`}`,
         link: `/assignment/grade/${assignment._id}`,
       });
-
       const io = req.app.get("io");
       if (io) {
         io.to(`user-${assignment.host}`).emit("new-submission", {
@@ -215,13 +193,7 @@ router.post(
         });
       }
 
-      res.render("participant/take-assignment", {
-        user: req.session.user,
-        assignment,
-        alreadySubmitted: true,
-        resultScore: totalScore,
-        resultMax: maxScore,
-      });
+      return res.redirect(`/assignment/take/${assignment._id}`);
     } catch (err) {
       console.error(err);
       res.status(500).send("Submission failed.");
@@ -229,75 +201,63 @@ router.post(
   }
 );
 
-// Host: View results + Chart.js data
+// ---------- HOST: results chart ----------
 router.get("/results/:id", isAuthenticated, authorizeRoles("host", "admin"), async (req, res) => {
   const assignment = await Assignment.findById(req.params.id).populate("submissions.participant", "name email");
   if (!assignment) return res.status(404).send("Assignment not found");
 
   const scores = assignment.submissions.map((s) => s.totalScore);
   const avgScore = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : 0;
-
   res.render("host/assignment-results", { user: req.session.user, assignment, avgScore });
 });
 
-// Host: Manual grading screen
+// ---------- HOST: grading screen ----------
 router.get("/grade/:id", isAuthenticated, authorizeRoles("host", "admin"), async (req, res) => {
-  const assignment = await Assignment.findById(req.params.id).populate(
-    "submissions.participant",
-    "name email"
-  );
+  const assignment = await Assignment.findById(req.params.id).populate("submissions.participant", "name email");
   if (!assignment) return res.status(404).send("Assignment not found");
   res.render("host/grade-assignment", { user: req.session.user, assignment });
 });
 
-// Host: Save manual grade for one submission's answer(s)
+// ---------- HOST: save marks ----------
 router.post("/grade/:assignmentId/:submissionId", isAuthenticated, authorizeRoles("host", "admin"), async (req, res) => {
   try {
-    const { assignmentId, submissionId } = req.params;
-    const assignment = await Assignment.findById(assignmentId);
+    const assignment = await Assignment.findById(req.params.assignmentId);
     if (!assignment) return res.status(404).send("Assignment not found");
-
-    const submission = assignment.submissions.id(submissionId);
+    const submission = assignment.submissions.id(req.params.submissionId);
     if (!submission) return res.status(404).send("Submission not found");
 
-    const points = JSON.parse(req.body.pointsData);
-    let newTotal = 0;
-
+    const points = JSON.parse(req.body.pointsData || "[]");
     points.forEach((p) => {
-      const answer = submission.answers.find((a) => a.questionIndex === p.questionIndex);
-      if (answer) {
-        answer.pointsAwarded = Number(p.pointsAwarded) || 0;
-        answer.isCorrect = answer.pointsAwarded > 0;
+      const ans = submission.answers.find((a) => a.questionIndex === p.questionIndex);
+      if (ans) {
+        const max = assignment.questions[p.questionIndex]?.points ?? 0;
+        ans.pointsAwarded = Math.max(0, Math.min(Number(p.pointsAwarded) || 0, max));
+        ans.isCorrect = ans.pointsAwarded > 0;
       }
     });
 
-    submission.answers.forEach((a) => (newTotal += a.pointsAwarded));
-    submission.totalScore = newTotal;
-
+    submission.totalScore = submission.answers.reduce((sum, a) => sum + a.pointsAwarded, 0);
     submission.isGraded = true;
     submission.gradedAt = new Date();
-
     await assignment.save();
 
-    // 🔔 Notify the student their assignment was graded
     await Notification.create({
       recipient: submission.participant,
       type: "assignment",
       title: "Assignment Graded",
-      message: `Your submission for "${assignment.title}" scored ${newTotal}/${submission.maxScore}`,
+      message: `"${assignment.title}" scored ${submission.totalScore}/${submission.maxScore}`,
       link: `/assignment/take/${assignment._id}`,
     });
-
     const io = req.app.get("io");
     if (io) {
       io.to(`user-${submission.participant}`).emit("new-notification", {
         title: "Assignment Graded",
-        message: `"${assignment.title}" scored ${newTotal}/${submission.maxScore}`,
+        message: `Scored ${submission.totalScore}/${submission.maxScore}`,
         link: `/assignment/take/${assignment._id}`,
       });
     }
 
-    res.redirect(`/assignment/grade/${assignmentId}`);
+    res.redirect(`/assignment/grade/${assignment._id}`);
   } catch (err) {
     console.error(err);
     res.status(500).send("Grading failed.");

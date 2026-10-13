@@ -1,49 +1,37 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <title>My Assignments</title>
-    <link rel="stylesheet" href="/css/responsive.css" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-</head>
-<body class="bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 min-h-screen p-6">
-  <div class="max-w-4xl mx-auto">
-    <h2 class="text-white text-3xl font-bold mb-6">📋 My Assignments</h2>
+<%- include('../partials/shell-top', { role: 'participant', active: 'assignments', title: 'Tasks' }) %>
+<% const cnt = s => assignments.filter(a => a.state === s).length; %>
+<div class="page-head"><div><span class="badge b-accent">Tasks</span><h2>My tasks</h2><p class="muted">Quizzes, homework and coding challenges from your teachers.</p></div></div>
 
-    <div class="grid gap-4">
-      <% assignments.forEach(a => { %>
-        <div class="assignment-card bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-5 flex items-center justify-between">
-          <div>
-            <h3 class="text-white font-semibold text-lg"><%= a.title %></h3>
-            <p class="text-gray-400 text-sm capitalize"><%= a.type.replace('_',' ') %> • <%= a.questions.length %> Questions</p>
-            <% if (a.dueDate) { %>
-              <p class="text-gray-500 text-xs">Due: <%= new Date(a.dueDate).toLocaleString() %></p>
-            <% } %>
-          </div>
-          <% if (a.alreadySubmitted) { %>
-            <% const mySub = a.submissions ? a.submissions.find(s => String(s.participant) === String(user._id)) : null; %>
-            <% if (mySub && mySub.isGraded) { %>
-              <a href="/assignment/take/<%= a._id %>" class="bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2">
-                ✅ <%= mySub.totalScore %>/<%= mySub.maxScore %>
-              </a>
-            <% } else { %>
-              <a href="/assignment/take/<%= a._id %>" class="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
-                ⏳ Awaiting Grade
-              </a>
-            <% } %>
-          <% } else { %>
-            <a href="/assignment/take/<%= a._id %>" class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:scale-105 transition">Start →</a>
-          <% } %>
-        </div>
-      <% }) %>
-      <% if (assignments.length === 0) { %>
-        <p class="text-gray-400 text-center py-10">No assignments yet.</p>
-      <% } %>
-    </div>
+<div class="toolbar">
+  <div class="searchbox"><i data-lucide="search"></i><input class="input" data-search-for="#tList" placeholder="Search tasks…" /></div>
+  <div class="tabs" data-filter-for="#tList">
+    <button class="on" data-f="all">All <%= assignments.length %></button>
+    <button data-f="todo">To do <%= cnt('todo') %></button>
+    <button data-f="review">In review <%= cnt('review') %></button>
+    <button data-f="graded">Graded <%= cnt('graded') %></button>
   </div>
-  <script>
-    gsap.from(".assignment-card", { opacity: 0, y: 20, stagger: 0.1, duration: 0.5 });
-  </script>
-</body>
-</html>
+</div>
+
+<div class="grid g-auto" id="tList" data-list>
+  <% assignments.forEach(a => {
+    const pct = a.mine && a.mine.maxScore ? Math.round(a.mine.totalScore / a.mine.maxScore * 100) : 0;
+  %>
+    <article class="card hover" data-item data-status="<%= a.state %>">
+      <div class="row between">
+        <span class="badge b-accent"><%= a.type.replace('_', ' ') %></span>
+        <% if (a.state === 'graded') { %><span class="badge b-green">Graded</span>
+        <% } else if (a.state === 'review') { %><span class="badge b-amber">In review</span>
+        <% } else if (a.overdue) { %><span class="badge b-red">Overdue</span>
+        <% } else { %><span class="badge">To do</span><% } %>
+      </div>
+      <h3 class="mt-s"><%= a.title %></h3>
+      <p class="muted small"><%= a.questions.length %> questions<%= a.dueDate ? ' · due ' + new Date(a.dueDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : '' %></p>
+      <% if (a.state === 'graded') { %>
+        <div class="mt-s"><div class="row between small"><span class="muted">Your score</span><b><%= a.mine.totalScore %>/<%= a.mine.maxScore %> · <%= pct %>%</b></div><div class="progress mt-s"><i style="width:<%= pct %>%"></i></div></div>
+      <% } %>
+      <div class="mt"><a class="btn <%= a.state === 'todo' ? 'btn-primary' : 'btn-ghost' %> btn-block" href="/assignment/take/<%= a._id %>"><%= a.state === 'todo' ? 'Start task' : 'View result' %></a></div>
+    </article>
+  <% }) %>
+</div>
+<div class="empty" data-empty-for="#tList" <%= assignments.length ? 'hidden' : '' %>><div class="ico"><i data-lucide="clipboard-check"></i></div>No tasks here yet.</div>
+<%- include('../partials/shell-bottom') %>

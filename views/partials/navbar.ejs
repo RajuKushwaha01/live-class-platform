@@ -1,69 +1,53 @@
-<nav class="fixed top-0 left-0 w-full z-50 px-6 md:px-8 py-4 flex items-center justify-between backdrop-blur-xl bg-black/20 border-b border-white/10">
-  <a href="/" class="flex items-center gap-2 text-white font-bold text-xl">
-    <span class="gradient-text">🎓 EduLive</span>
-  </a>
+<header class="fixed top-4 inset-x-0 z-50 px-4">
+  <nav class="nav-pill mx-auto max-w-5xl flex items-center justify-between rounded-full pl-4 pr-2 py-2">
+    <a href="/" class="flex items-center gap-2 font-display font-bold text-lg text-white">
+      <span class="logo-mark">E</span> EduLive
+    </a>
 
-  <div class="navbar-links hidden md:flex items-center gap-8 text-gray-300 text-sm">
-    <a href="/#home" class="hover:text-white transition">Home</a>
-    <a href="/#features" class="hover:text-white transition">Features</a>
-    <a href="/#courses" class="hover:text-white transition">Courses</a>
-    <a href="/#meetings" class="hover:text-white transition">Meetings</a>
-  </div>
+    <div class="navbar-links hidden md:flex items-center gap-1">
+      <a class="nav-link" href="/#home">Home</a>
+      <a class="nav-link" href="/#features">Features</a>
+      <a class="nav-link" href="/#how">How it works</a>
+      <a class="nav-link" href="/#portals">Portals</a>
+    </div>
 
-  <div class="navbar-links hidden md:flex items-center gap-3">
-    <% if (typeof currentUser !== "undefined" && currentUser) { %>
-      <a href="/<%= currentUser.role %>/dashboard" class="text-white text-sm px-4 py-2 rounded-lg hover:bg-white/10 transition">Dashboard</a>
-      <a href="/auth/logout" class="btn-glow text-white text-sm px-5 py-2 rounded-lg">Logout</a>
-    <% } else { %>
-      <a href="/auth/login" class="text-white text-sm px-4 py-2 rounded-lg hover:bg-white/10 transition">Login</a>
-      <a href="/auth/register" class="btn-glow text-white text-sm px-5 py-2 rounded-lg">Get Started</a>
-    <% } %>
-  </div>
+    <div class="navbar-links hidden md:flex items-center gap-2">
+      <% if (typeof currentUser !== "undefined" && currentUser) { %>
+        <a href="/<%= currentUser.role %>/dashboard" class="btn-ghost px-4 py-2 text-sm">Dashboard</a>
+        <a href="/auth/logout" class="btn-glow px-5 py-2 text-sm">Logout</a>
+      <% } else { %>
+        <a href="/auth/login?portal=student" class="btn-ghost px-4 py-2 text-sm">Sign in</a>
+        <a href="/auth/register?portal=teacher" class="btn-glow px-5 py-2 text-sm">Get started</a>
+      <% } %>
+    </div>
 
-  <!-- Hamburger (mobile only) -->
-  <button id="navHamburger" class="navbar-hamburger text-white p-2">
-    <i data-lucide="menu" id="navMenuIcon" class="w-6 h-6"></i>
-  </button>
-</nav>
+    <button id="navHamburger" class="navbar-hamburger text-white p-2 mr-1" aria-label="Menu">
+      <i data-lucide="menu" id="navMenuIcon" class="w-6 h-6"></i>
+    </button>
+  </nav>
+</header>
 
-<!-- Mobile dropdown menu -->
-<div id="navMobileMenu" class="navbar-mobile-menu">
+<div id="navMobileMenu" class="navbar-mobile-menu" style="top:76px">
   <div class="flex flex-col gap-1">
-    <a href="/#home" class="text-gray-300 hover:text-white py-3 border-b border-white/10 text-sm">Home</a>
-    <a href="/#features" class="text-gray-300 hover:text-white py-3 border-b border-white/10 text-sm">Features</a>
-    <a href="/#courses" class="text-gray-300 hover:text-white py-3 border-b border-white/10 text-sm">Courses</a>
-    <a href="/#meetings" class="text-gray-300 hover:text-white py-3 border-b border-white/10 text-sm">Meetings</a>
-
+    <a href="/#home" class="py-3 border-b border-white/10 text-sm text-gray-300">Home</a>
+    <a href="/#features" class="py-3 border-b border-white/10 text-sm text-gray-300">Features</a>
+    <a href="/#how" class="py-3 border-b border-white/10 text-sm text-gray-300">How it works</a>
+    <a href="/#portals" class="py-3 border-b border-white/10 text-sm text-gray-300">Portals</a>
     <% if (typeof currentUser !== "undefined" && currentUser) { %>
-      <a href="/<%= currentUser.role %>/dashboard" class="text-white py-3 text-sm font-medium mt-2">Dashboard</a>
-      <a href="/auth/logout" class="btn-glow text-white text-sm px-5 py-3 rounded-lg text-center mt-2">Logout</a>
+      <a href="/<%= currentUser.role %>/dashboard" class="btn-glow mt-3 py-3 text-sm">Dashboard</a>
     <% } else { %>
-      <a href="/auth/login" class="text-white py-3 text-sm font-medium mt-2">Login</a>
-      <a href="/auth/register" class="btn-glow text-white text-sm px-5 py-3 rounded-lg text-center mt-2">Get Started</a>
+      <a href="/auth/login?portal=student" class="btn-ghost mt-3 py-3 text-sm">Student sign in</a>
+      <a href="/auth/login?portal=teacher" class="btn-glow mt-2 py-3 text-sm">Teacher sign in</a>
     <% } %>
   </div>
 </div>
 
 <script>
-  (function() {
-    const btn = document.getElementById("navHamburger");
-    const menu = document.getElementById("navMobileMenu");
-    const icon = document.getElementById("navMenuIcon");
+  (function () {
+    const btn = document.getElementById("navHamburger"), menu = document.getElementById("navMobileMenu"), icon = document.getElementById("navMenuIcon");
     let open = false;
-
-    btn?.addEventListener("click", () => {
-      open = !open;
-      menu.classList.toggle("open", open);
-      icon.setAttribute("data-lucide", open ? "x" : "menu");
-      if (typeof lucide !== "undefined") lucide.createIcons();
-    });
-
-    // Close menu when a link is tapped
-    menu?.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => {
-      open = false;
-      menu.classList.remove("open");
-      icon.setAttribute("data-lucide", "menu");
-      if (typeof lucide !== "undefined") lucide.createIcons();
-    }));
+    function set(v) { open = v; menu.classList.toggle("open", v); icon.setAttribute("data-lucide", v ? "x" : "menu"); lucide.createIcons(); }
+    btn.addEventListener("click", () => set(!open));
+    menu.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => set(false)));
   })();
 </script>
